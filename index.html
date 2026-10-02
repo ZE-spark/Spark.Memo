@@ -1,0 +1,2565 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spark.Memo</title>
+    <link rel="icon" type="image/png" href="./assets/icon.png">
+    <base href="./">
+    <!-- Tailwind CSS -->
+    <script src="./assets/tailwind.js"></script>
+    <!-- Lucide Icons -->
+    <script src="./assets/lucide.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'Segoe UI', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 12px rgba(0, 0, 0, 0.03)',
+                        'soft-dark': '0 2px 12px rgba(0, 0, 0, 0.2)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #E5E5E5; border-radius: 99px; }
+        .dark ::-webkit-scrollbar-thumb { background: #262626; }
+        
+        ::selection { background: rgba(23, 23, 23, 0.06); }
+        .dark ::selection { background: rgba(255, 255, 255, 0.06); }
+
+        input:focus, textarea:focus, [contenteditable]:focus { outline: none; box-shadow: none !important; }
+
+        /* contenteditable 富文本正文与占位符 */
+        #note-content:empty::before,
+        #note-content[data-empty="true"]::before {
+            content: attr(data-placeholder);
+            color: #A3A3A3;
+            pointer-events: none;
+            display: block;
+        }
+        html.dark #note-content:empty::before,
+        html.dark #note-content[data-empty="true"]::before {
+            color: #525252 !important;
+        }
+        html[data-theme="warm"] #note-content:empty::before,
+        html[data-theme="warm"] #note-content[data-empty="true"]::before {
+            color: #C8BEAF !important;
+        }
+        html[data-theme="violet"] #note-content:empty::before,
+        html[data-theme="violet"] #note-content[data-empty="true"]::before {
+            color: #554E74 !important;
+        }
+        html[data-theme="teal"] #note-content:empty::before,
+        html[data-theme="teal"] #note-content[data-empty="true"]::before {
+            color: #42646C !important;
+        }
+
+        .note-inline-img-card {
+            display: block;
+            margin: 14px 0;
+            user-select: none;
+        }
+        .note-inline-img-card img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            border-radius: 16px;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+        }
+        .note-inline-img-card img:hover {
+            transform: scale(1.008);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+            opacity: 0.96;
+        }
+
+        .theme-transition, .theme-transition * {
+            transition: background-color 0.22s ease, border-color 0.22s ease, opacity 0.22s ease, box-shadow 0.22s ease !important;
+        }
+
+        /* ================= 5款主题色调系统 ================= */
+
+        /* 1. 极简纯白 (Light) & 2. 曜石深黑 (Dark) 沿用系统默认原生配置 */
+
+        /* 3. 米黄暖纸 (Warm Cream / 复古护眼 - 参考图1) */
+        html[data-theme="warm"] body {
+            background-color: #F8F5EE !important;
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] aside {
+            background-color: #EFE9DE !important;
+            border-color: #E2D9CC !important;
+        }
+        html[data-theme="warm"] main {
+            background-color: #FBF9F4 !important;
+        }
+        html[data-theme="warm"] .border-b,
+        html[data-theme="warm"] .border-t,
+        html[data-theme="warm"] .border-r,
+        html[data-theme="warm"] .border-l {
+            border-color: #E4DCCF !important;
+        }
+        html[data-theme="warm"] #search-input {
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] #search-input::placeholder {
+            color: #A0978B !important;
+        }
+        html[data-theme="warm"] .bg-neutral-200\/30 {
+            background-color: #E6E0D3 !important;
+            border-color: #DDD4C5 !important;
+        }
+        html[data-theme="warm"] button[id^="tag-filter-"] {
+            color: #7A726A !important;
+        }
+        html[data-theme="warm"] #tag-filter-all.bg-neutral-200\/60 {
+            background-color: #E2D8C6 !important;
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] input, html[data-theme="warm"] textarea {
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] #note-title::placeholder,
+        html[data-theme="warm"] #note-content::placeholder {
+            color: #C8BEAF !important;
+        }
+        html[data-theme="warm"] #note-list [id^="sidebar-item-"].bg-white {
+            background-color: #FAF6ED !important;
+            border-color: #DDD3C2 !important;
+            box-shadow: 0 1px 6px rgba(80, 60, 40, 0.05) !important;
+        }
+        html[data-theme="warm"] #note-list [id^="sidebar-item-"]:hover {
+            background-color: #E7E0D3 !important;
+        }
+        html[data-theme="warm"] .text-neutral-800 {
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] .text-neutral-500,
+        html[data-theme="warm"] .text-neutral-400 {
+            color: #7A726A !important;
+        }
+        html[data-theme="warm"] ::selection {
+            background: #E5DEC5 !important;
+        }
+        html[data-theme="warm"] ::-webkit-scrollbar-thumb {
+            background: #D5CCBA !important;
+        }
+        html[data-theme="warm"] #theme-menu {
+            background-color: #FAF6ED !important;
+            border-color: #DDD3C2 !important;
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] #theme-menu .theme-option:hover {
+            background-color: #EFE8DA !important;
+        }
+        html[data-theme="warm"] #phone-sync-modal > div > div,
+        html[data-theme="warm"] #device-auth-modal > div {
+            background-color: #FAF6ED !important;
+            border-color: #DDD3C2 !important;
+        }
+
+        /* 4. 暮色紫夜 (Lavender Violet / 暗夜极光 - 参考图2) */
+        html[data-theme="violet"] body {
+            background-color: #161420 !important;
+            color: #EAE6F5 !important;
+        }
+        html[data-theme="violet"] aside {
+            background-color: #1E1A2E !important;
+            border-color: #2D2644 !important;
+        }
+        html[data-theme="violet"] main {
+            background-color: #181524 !important;
+        }
+        html[data-theme="violet"] .border-b,
+        html[data-theme="violet"] .border-t,
+        html[data-theme="violet"] .border-r,
+        html[data-theme="violet"] .border-l {
+            border-color: #2D2644 !important;
+        }
+        html[data-theme="violet"] #search-input {
+            color: #EDE9F7 !important;
+        }
+        html[data-theme="violet"] #search-input::placeholder {
+            color: #7E789B !important;
+        }
+        html[data-theme="violet"] .dark\:bg-neutral-800\/30 {
+            background-color: #26213A !important;
+            border-color: #373054 !important;
+        }
+        html[data-theme="violet"] button[id^="tag-filter-"] {
+            color: #968FA8 !important;
+        }
+        html[data-theme="violet"] #tag-filter-all.dark\:bg-neutral-800\/60 {
+            background-color: #2D2644 !important;
+            color: #EDE9F7 !important;
+        }
+        html[data-theme="violet"] input, html[data-theme="violet"] textarea {
+            color: #EDE9F7 !important;
+        }
+        html[data-theme="violet"] #note-title::placeholder,
+        html[data-theme="violet"] #note-content::placeholder {
+            color: #554E74 !important;
+        }
+        html[data-theme="violet"] #note-list [id^="sidebar-item-"].dark\:bg-\[\#1C1C1E\] {
+            background-color: #2A2440 !important;
+            border-color: #3F3661 !important;
+            box-shadow: 0 2px 10px rgba(10, 8, 20, 0.4) !important;
+        }
+        html[data-theme="violet"] #note-list [id^="sidebar-item-"]:hover {
+            background-color: #241F37 !important;
+        }
+        html[data-theme="violet"] .dark\:text-neutral-200,
+        html[data-theme="violet"] .dark\:text-\[\#F5F5F7\] {
+            color: #EDE9F7 !important;
+        }
+        html[data-theme="violet"] .dark\:text-neutral-400,
+        html[data-theme="violet"] .dark\:text-neutral-500 {
+            color: #968FA8 !important;
+        }
+        html[data-theme="violet"] ::selection {
+            background: #413768 !important;
+        }
+        html[data-theme="violet"] ::-webkit-scrollbar-thumb {
+            background: #393155 !important;
+        }
+        html[data-theme="violet"] #theme-menu {
+            background-color: #231E37 !important;
+            border-color: #383056 !important;
+            color: #EDE9F7 !important;
+        }
+        html[data-theme="violet"] #theme-menu .theme-option:hover {
+            background-color: #2E2749 !important;
+        }
+        html[data-theme="violet"] #phone-sync-modal > div > div,
+        html[data-theme="violet"] #device-auth-modal > div {
+            background-color: #201B33 !important;
+            border-color: #383056 !important;
+        }
+
+        /* 5. 松石墨青 (Pine Teal / 深海墨翠 - 参考图3) */
+        html[data-theme="teal"] body {
+            background-color: #0C1619 !important;
+            color: #E8F4F2 !important;
+        }
+        html[data-theme="teal"] aside {
+            background-color: #122126 !important;
+            border-color: #1A333B !important;
+        }
+        html[data-theme="teal"] main {
+            background-color: #0E1B1F !important;
+        }
+        html[data-theme="teal"] .border-b,
+        html[data-theme="teal"] .border-t,
+        html[data-theme="teal"] .border-r,
+        html[data-theme="teal"] .border-l {
+            border-color: #1A333B !important;
+        }
+        html[data-theme="teal"] #search-input {
+            color: #E8F4F2 !important;
+        }
+        html[data-theme="teal"] #search-input::placeholder {
+            color: #6C939C !important;
+        }
+        html[data-theme="teal"] .dark\:bg-neutral-800\/30 {
+            background-color: #172D35 !important;
+            border-color: #244652 !important;
+        }
+        html[data-theme="teal"] button[id^="tag-filter-"] {
+            color: #799DA4 !important;
+        }
+        html[data-theme="teal"] #tag-filter-all.dark\:bg-neutral-800\/60 {
+            background-color: #1D3740 !important;
+            color: #E8F4F2 !important;
+        }
+        html[data-theme="teal"] input, html[data-theme="teal"] textarea {
+            color: #E8F4F2 !important;
+        }
+        html[data-theme="teal"] #note-title::placeholder,
+        html[data-theme="teal"] #note-content::placeholder {
+            color: #42646C !important;
+        }
+        html[data-theme="teal"] #note-list [id^="sidebar-item-"].dark\:bg-\[\#1C1C1E\] {
+            background-color: #1A343D !important;
+            border-color: #264E5B !important;
+            box-shadow: 0 2px 10px rgba(5, 15, 20, 0.4) !important;
+        }
+        html[data-theme="teal"] #note-list [id^="sidebar-item-"]:hover {
+            background-color: #162B32 !important;
+        }
+        html[data-theme="teal"] .dark\:text-neutral-200,
+        html[data-theme="teal"] .dark\:text-\[\#F5F5F7\] {
+            color: #E8F4F2 !important;
+        }
+        html[data-theme="teal"] .dark\:text-neutral-400,
+        html[data-theme="teal"] .dark\:text-neutral-500 {
+            color: #799DA4 !important;
+        }
+        html[data-theme="teal"] ::selection {
+            background: #1F4855 !important;
+        }
+        html[data-theme="teal"] ::-webkit-scrollbar-thumb {
+            background: #254B57 !important;
+        }
+        html[data-theme="teal"] #theme-menu {
+            background-color: #14252B !important;
+            border-color: #244652 !important;
+            color: #E8F4F2 !important;
+        }
+        html[data-theme="teal"] #theme-menu .theme-option:hover {
+            background-color: #1B353E !important;
+        }
+        html[data-theme="teal"] #phone-sync-modal > div > div,
+        html[data-theme="teal"] #device-auth-modal > div,
+        html[data-theme="teal"] #image-preview-modal > div {
+            background-color: #13242A !important;
+            border-color: #244652 !important;
+            color: #E8F4F2 !important;
+        }
+        html[data-theme="teal"] #font-size-menu {
+            background-color: #14252B !important;
+            border-color: #244652 !important;
+            color: #E8F4F2 !important;
+        }
+
+        /* 暮色紫夜 (Violet) 浮层与弹窗适配 */
+        html[data-theme="violet"] #image-preview-modal > div {
+            background-color: #201B33 !important;
+            border-color: #383056 !important;
+            color: #EDE9F7 !important;
+        }
+        html[data-theme="violet"] #font-size-menu {
+            background-color: #201B33 !important;
+            border-color: #383056 !important;
+            color: #EDE9F7 !important;
+        }
+
+        /* 米黄暖纸 (Warm) 浮层与弹窗适配 */
+        html[data-theme="warm"] #image-preview-modal > div {
+            background-color: #FAF6ED !important;
+            border-color: #DDD3C2 !important;
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] #font-size-menu {
+            background-color: #FAF6ED !important;
+            border-color: #DDD3C2 !important;
+            color: #2D2825 !important;
+        }
+
+        /* --- 字号调节面板全主题色彩适配 --- */
+        .font-preset-btn {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #525252;
+            background-color: transparent;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .font-preset-btn:hover {
+            border-color: #171717 !important;
+            color: #171717 !important;
+        }
+        .font-preset-btn.font-preset-active {
+            background-color: #171717 !important;
+            border-color: #171717 !important;
+            color: #FFFFFF !important;
+            font-weight: 600 !important;
+        }
+
+        /* 极简深黑 / 默认深色 (Dark) */
+        html.dark .font-preset-btn,
+        html[data-theme="dark"] .font-preset-btn {
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            color: #A3A3A3 !important;
+        }
+        html.dark .font-preset-btn:hover,
+        html[data-theme="dark"] .font-preset-btn:hover {
+            border-color: #71717A !important;
+            color: #FAFAFA !important;
+        }
+        html.dark .font-preset-btn.font-preset-active,
+        html[data-theme="dark"] .font-preset-btn.font-preset-active {
+            background-color: #2E2E32 !important;
+            border-color: #71717A !important;
+            color: #FAFAFA !important;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        /* 米黄暖纸 (Warm) */
+        html[data-theme="warm"] .font-preset-btn {
+            border-color: #DDD3C2 !important;
+            color: #7A726A !important;
+        }
+        html[data-theme="warm"] .font-preset-btn:hover {
+            border-color: #A89B84 !important;
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] .font-preset-btn.font-preset-active {
+            background-color: #E8DFCF !important;
+            border-color: #A89B84 !important;
+            color: #2D2825 !important;
+            box-shadow: 0 1px 3px rgba(168, 155, 132, 0.2) !important;
+        }
+        html[data-theme="warm"] #font-size-indicator {
+            color: #2D2825 !important;
+        }
+        html[data-theme="warm"] .font-stepper-wrap {
+            background-color: #EFE8DA !important;
+        }
+        html[data-theme="warm"] .font-stepper-btn {
+            background-color: #FAF6ED !important;
+            color: #2D2825 !important;
+            border: 1px solid #DDD3C2 !important;
+        }
+        html[data-theme="warm"] .font-stepper-btn:hover {
+            background-color: #E5DEC5 !important;
+        }
+        html[data-theme="warm"] .font-stepper-text {
+            color: #7A726A !important;
+        }
+
+        /* 暮色紫夜 (Violet) - 完美匹配紫色背景，彻底消除黄色违和感 */
+        html[data-theme="violet"] .font-preset-btn {
+            border-color: #383056 !important;
+            color: #968FA8 !important;
+        }
+        html[data-theme="violet"] .font-preset-btn:hover {
+            border-color: #8B5CF6 !important;
+            color: #C4B5FD !important;
+            background-color: rgba(139, 92, 246, 0.08) !important;
+        }
+        html[data-theme="violet"] .font-preset-btn.font-preset-active {
+            background-color: #3B315E !important;
+            border-color: #8B5CF6 !important;
+            color: #EDE9F7 !important;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.25) !important;
+        }
+        html[data-theme="violet"] #font-size-indicator {
+            color: #C4B5FD !important;
+        }
+        html[data-theme="violet"] .font-stepper-wrap {
+            background-color: #26203D !important;
+        }
+        html[data-theme="violet"] .font-stepper-btn {
+            background-color: #342C52 !important;
+            color: #EDE9F7 !important;
+        }
+        html[data-theme="violet"] .font-stepper-btn:hover {
+            background-color: #423868 !important;
+        }
+        html[data-theme="violet"] .font-stepper-text {
+            color: #968FA8 !important;
+        }
+        html[data-theme="violet"] #font-size-btn:hover {
+            color: #C4B5FD !important;
+        }
+
+        /* 松石墨青 (Teal) - 完美匹配墨青背景 */
+        html[data-theme="teal"] .font-preset-btn {
+            border-color: #244652 !important;
+            color: #799DA4 !important;
+        }
+        html[data-theme="teal"] .font-preset-btn:hover {
+            border-color: #14B8A6 !important;
+            color: #5EEAD4 !important;
+            background-color: rgba(20, 184, 166, 0.08) !important;
+        }
+        html[data-theme="teal"] .font-preset-btn.font-preset-active {
+            background-color: #1B3D47 !important;
+            border-color: #14B8A6 !important;
+            color: #E8F4F2 !important;
+            box-shadow: 0 0 10px rgba(20, 184, 166, 0.25) !important;
+        }
+        html[data-theme="teal"] #font-size-indicator {
+            color: #5EEAD4 !important;
+        }
+        html[data-theme="teal"] .font-stepper-wrap {
+            background-color: #172D35 !important;
+        }
+        html[data-theme="teal"] .font-stepper-btn {
+            background-color: #1F3C46 !important;
+            color: #E8F4F2 !important;
+        }
+        html[data-theme="teal"] .font-stepper-btn:hover {
+            background-color: #274D5A !important;
+        }
+        html[data-theme="teal"] .font-stepper-text {
+            color: #799DA4 !important;
+        }
+        html[data-theme="teal"] #font-size-btn:hover {
+            color: #5EEAD4 !important;
+        }
+
+        /* --- 缩略图视窗与拖拽排序 GPU 硬件加速样式 --- */
+        #note-images-bar {
+            will-change: scroll-position;
+            transform: translateZ(0);
+            -webkit-overflow-scrolling: touch;
+        }
+        .image-thumb-card {
+            will-change: transform;
+            transform: translateZ(0);
+            cursor: grab;
+            user-select: none;
+            transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.16s ease, border-color 0.16s ease, opacity 0.16s ease;
+        }
+        .image-thumb-card:active {
+            cursor: grabbing;
+        }
+        .thumb-dragging {
+            opacity: 0.35 !important;
+            transform: scale(0.9) !important;
+            border-style: dashed !important;
+        }
+        .thumb-drop-target {
+            transform: scale(1.06) !important;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+            border-style: solid !important;
+            z-index: 10 !important;
+        }
+
+        /* 暮色紫夜主题拖拽高亮 */
+        html[data-theme="violet"] .thumb-drop-target {
+            border-color: #8B5CF6 !important;
+            box-shadow: 0 0 0 2px #8B5CF6, 0 8px 20px rgba(139, 92, 246, 0.4) !important;
+        }
+        /* 松石墨青主题拖拽高亮 */
+        html[data-theme="teal"] .thumb-drop-target {
+            border-color: #14B8A6 !important;
+            box-shadow: 0 0 0 2px #14B8A6, 0 8px 20px rgba(20, 184, 166, 0.4) !important;
+        }
+        /* 米黄暖纸主题拖拽高亮 */
+        html[data-theme="warm"] .thumb-drop-target {
+            border-color: #8C7B65 !important;
+            box-shadow: 0 0 0 2px #8C7B65, 0 8px 20px rgba(140, 123, 101, 0.3) !important;
+        }
+        /* 曜石深黑主题拖拽高亮 */
+        html.dark .thumb-drop-target,
+        html[data-theme="dark"] .thumb-drop-target {
+            border-color: #FAFAFA !important;
+            box-shadow: 0 0 0 2px #FAFAFA, 0 8px 20px rgba(255, 255, 255, 0.25) !important;
+        }
+        /* 极简纯白主题拖拽高亮 */
+        html:not(.dark) .thumb-drop-target {
+            border-color: #171717 !important;
+            box-shadow: 0 0 0 2px #171717, 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        /* --- 右下角字数统计浮标全主题配色适配 --- */
+        #word-count-badge {
+            background-color: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(229, 231, 235, 0.85);
+            color: #737373;
+            backdrop-filter: blur(8px);
+        }
+        html.dark #word-count-badge,
+        html[data-theme="dark"] #word-count-badge {
+            background-color: rgba(28, 28, 30, 0.85) !important;
+            border-color: rgba(46, 46, 50, 0.85) !important;
+            color: #A1A1AA !important;
+        }
+        html[data-theme="violet"] #word-count-badge {
+            background-color: rgba(32, 27, 51, 0.85) !important;
+            border-color: rgba(56, 48, 86, 0.75) !important;
+            color: #968FA8 !important;
+        }
+        html[data-theme="teal"] #word-count-badge {
+            background-color: rgba(19, 36, 42, 0.85) !important;
+            border-color: rgba(36, 70, 82, 0.75) !important;
+            color: #799DA4 !important;
+        }
+        html[data-theme="warm"] #word-count-badge {
+            background-color: rgba(250, 246, 237, 0.9) !important;
+            border-color: rgba(221, 211, 194, 0.85) !important;
+            color: #7A726A !important;
+        }
+
+        /* 顶部原生自适应沉浸式标题栏配色 */
+        #window-titlebar {
+            background-color: #FAFAFA;
+            border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+            color: #525252;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+        html.dark #window-titlebar,
+        html[data-theme="dark"] #window-titlebar {
+            background-color: #0A0A0A !important;
+            border-bottom-color: rgba(38, 38, 38, 0.8) !important;
+            color: #A3A3A3 !important;
+        }
+        html[data-theme="warm"] #window-titlebar {
+            background-color: #F8F5EE !important;
+            border-bottom-color: #E6DFCE !important;
+            color: #78716C !important;
+        }
+        html[data-theme="violet"] #window-titlebar {
+            background-color: #161420 !important;
+            border-bottom-color: #27213C !important;
+            color: #A78BFA !important;
+        }
+        html[data-theme="teal"] #window-titlebar {
+            background-color: #0C1619 !important;
+            border-bottom-color: #1A333B !important;
+            color: #2DD4BF !important;
+        }
+
+        /* --- 侧边栏折叠/展开丝滑过渡动画与自适应 --- */
+        #app-sidebar {
+            width: 20rem; /* 320px */
+            min-width: 20rem;
+            transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+            overflow: hidden;
+            will-change: width, min-width;
+        }
+        #app-sidebar.sidebar-collapsed {
+            width: 0 !important;
+            min-width: 0 !important;
+            border-right-width: 0 !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* --- 确保正文文本区域与输入框自适应换行，避免截断 --- */
+        #note-title,
+        #note-content {
+            box-sizing: border-box;
+            max-width: 100%;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        #note-images-bar {
+            max-width: 100% !important;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body class="h-full bg-[#FAFAFA] text-[#171717] dark:bg-[#0A0A0A] dark:text-[#F5F5F7] antialiased font-sans theme-transition flex flex-col overflow-hidden">
+
+    <!-- 顶部原生自适应沉浸式标题栏 (拖拽区与窗口控制区) -->
+    <div id="window-titlebar" class="h-9 pl-3.5 pr-0 flex items-center justify-between flex-shrink-0 select-none border-b border-neutral-200/60 dark:border-neutral-800/60" style="-webkit-app-region: drag;">
+        <div class="flex items-center space-x-2 text-xs font-medium pl-0.5 pointer-events-none">
+            <img src="./assets/icon.png" class="w-3.5 h-3.5 rounded shadow-xs object-cover" alt="logo">
+            <span class="text-[11px] font-semibold tracking-wider uppercase opacity-85">Spark.Memo</span>
+        </div>
+        <!-- 窗口自适应控制按钮 (- [] X) -->
+        <div class="flex items-center h-full" style="-webkit-app-region: no-drag;">
+            <button onclick="window.sparkBridge && window.sparkBridge.windowMinimize()" class="h-full px-3.5 hover:bg-neutral-500/15 active:bg-neutral-500/25 transition-colors flex items-center justify-center text-inherit opacity-75 hover:opacity-100" title="最小化">
+                <svg class="w-3 h-3" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="2" y="8" width="12" height="1.5" rx="0.5"/>
+                </svg>
+            </button>
+            <button onclick="window.sparkBridge && window.sparkBridge.windowMaximize()" class="h-full px-3.5 hover:bg-neutral-500/15 active:bg-neutral-500/25 transition-colors flex items-center justify-center text-inherit opacity-75 hover:opacity-100" title="最大化 / 还原">
+                <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+                    <rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/>
+                </svg>
+            </button>
+            <button onclick="window.sparkBridge && window.sparkBridge.windowClose()" class="h-full px-4 hover:bg-red-500 hover:text-white active:bg-red-600 transition-colors flex items-center justify-center text-inherit opacity-75 hover:opacity-100" title="关闭">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <line x1="3.5" y1="3.5" x2="12.5" y2="12.5"/>
+                    <line x1="12.5" y1="3.5" x2="3.5" y2="12.5"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- 主工作区：左侧边栏 + 右侧编辑区 -->
+    <div class="flex-1 flex overflow-hidden">
+        <!-- 左侧非对称收纳边栏 (支持自由收起/展开，全套主题自适应) -->
+        <aside id="app-sidebar" class="w-80 h-full border-r border-neutral-200/60 dark:border-neutral-800/60 bg-[#F4F4F5]/60 dark:bg-[#121212]/60 backdrop-blur-md flex flex-col flex-shrink-0 select-none overflow-hidden">
+            <div class="w-80 h-full flex flex-col flex-shrink-0">
+                <!-- 边栏头部 (高度对齐 h-[50px]) -->
+                <div class="h-[50px] px-4 border-b border-neutral-200/60 dark:border-neutral-800/60 flex items-center justify-between flex-shrink-0">
+                    <div class="flex items-center space-x-1.5">
+                        <button id="collapse-sidebar-btn" onclick="toggleSidebar()" class="p-1 -ml-1 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-all duration-200" title="收起边栏 (Ctrl+\)">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="18" x="3" y="3" rx="2" />
+                                <path d="M9 3v18" />
+                                <path d="m14 9-3 3 3 3" />
+                            </svg>
+                        </button>
+                        <span class="text-[12px] font-semibold tracking-wider text-neutral-500 dark:text-neutral-400 uppercase">全部笔记</span>
+                    </div>
+            
+            <div class="flex items-center space-x-1">
+                <button onclick="openPhoneSyncModal()" class="p-1 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-neutral-500 dark:text-neutral-400 hover:text-amber-500 dark:hover:text-amber-400 transition-all duration-200" title="手机扫码互传">
+                    <i data-lucide="smartphone" class="w-3.5 h-3.5 stroke-[1.75]"></i>
+                </button>
+                <button id="multi-select-btn" onclick="toggleSelectionMode()" class="p-1 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-all duration-200" title="多选">
+                    <i data-lucide="check-square" class="w-3.5 h-3.5 stroke-[1.75]"></i>
+                </button>
+                <!-- 颜色模式选择下拉 -->
+                <div class="relative">
+                    <button id="theme-btn" onclick="toggleThemeMenu(event)" class="p-1 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-all duration-200" title="颜色模式与色调搭配">
+                        <svg class="w-3.5 h-3.5 stroke-[1.75]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+                            <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+                            <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+                            <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+                            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+                        </svg>
+                    </button>
+                    <!-- 下拉浮层 -->
+                    <div id="theme-menu" class="hidden absolute right-0 top-full mt-2 w-52 rounded-xl bg-white dark:bg-[#1C1C1E] border border-neutral-200/80 dark:border-neutral-800/80 shadow-2xl p-1.5 z-50 select-none">
+                        <div class="px-2 py-1 text-[11px] font-medium text-neutral-400 dark:text-neutral-500 border-b border-neutral-100 dark:border-neutral-800/60 mb-1 flex items-center justify-between">
+                            <span>色彩搭配模式</span>
+                            <span class="text-[10px] opacity-75">5 款精选</span>
+                        </div>
+                        <div class="space-y-0.5">
+                            <button onclick="setTheme('light')" class="theme-option w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800/60 transition-all text-left" data-theme-val="light">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full border border-neutral-300 bg-[#FAFAFA] flex-shrink-0 shadow-xs"></span>
+                                    <span>极简纯白</span>
+                                </div>
+                                <span class="theme-check hidden font-bold text-xs">✓</span>
+                            </button>
+                            <button onclick="setTheme('dark')" class="theme-option w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800/60 transition-all text-left" data-theme-val="dark">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full border border-neutral-700 bg-[#0A0A0A] flex-shrink-0 shadow-xs"></span>
+                                    <span>曜石深黑</span>
+                                </div>
+                                <span class="theme-check hidden font-bold text-xs">✓</span>
+                            </button>
+                            <button onclick="setTheme('warm')" class="theme-option w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800/60 transition-all text-left" data-theme-val="warm">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full border border-[#D5CCBA] flex-shrink-0 shadow-xs" style="background: linear-gradient(135deg, #EFE9DE 50%, #FBF9F4 50%);"></span>
+                                    <span>米黄暖纸</span>
+                                </div>
+                                <span class="theme-check hidden font-bold text-xs">✓</span>
+                            </button>
+                            <button onclick="setTheme('violet')" class="theme-option w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800/60 transition-all text-left" data-theme-val="violet">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full border border-[#3E3561] flex-shrink-0 shadow-xs" style="background: linear-gradient(135deg, #1E1A2E 50%, #181524 50%);"></span>
+                                    <span>暮色紫夜</span>
+                                </div>
+                                <span class="theme-check hidden font-bold text-xs">✓</span>
+                            </button>
+                            <button onclick="setTheme('teal')" class="theme-option w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs hover:bg-neutral-100 dark:hover:bg-neutral-800/60 transition-all text-left" data-theme-val="teal">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3.5 h-3.5 rounded-full border border-[#254E5A] flex-shrink-0 shadow-xs" style="background: linear-gradient(135deg, #122126 50%, #0E1B1F 50%);"></span>
+                                    <span>松石墨青</span>
+                                </div>
+                                <span class="theme-check hidden font-bold text-xs">✓</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="createNewNote()" class="p-1 rounded-md hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-all duration-200">
+                    <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[1.75]"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 搜索框区域 -->
+        <div class="px-4 mt-3 mb-2.5">
+            <div class="flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-neutral-200/30 dark:bg-neutral-800/30 border border-neutral-200/20 dark:border-neutral-800/20 focus-within:border-neutral-300 dark:focus-within:border-neutral-700 transition-all duration-200">
+                <i data-lucide="search" class="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500 stroke-[1.5]"></i>
+                <input id="search-input" type="text" placeholder="搜索备忘..." oninput="handleSearch(this.value)" class="w-full text-[13px] bg-transparent text-neutral-800 dark:text-neutral-200 placeholder-neutral-400 dark:placeholder-neutral-500">
+            </div>
+        </div>
+
+        <!-- 标签过滤项 -->
+        <div class="px-4 mb-2 flex items-center space-x-1.5 text-[11px] font-medium text-neutral-400 dark:text-neutral-500">
+            <button onclick="filterByTag('all')" id="tag-filter-all" class="px-2 py-0.5 rounded bg-neutral-200/60 dark:bg-neutral-800/60 text-neutral-800 dark:text-neutral-200 transition-all">全部</button>
+            <button onclick="filterByTag('工作')" id="tag-filter-工作" class="px-2 py-0.5 rounded hover:bg-neutral-200/40 dark:hover:bg-neutral-800/40 transition-all">工作</button>
+            <button onclick="filterByTag('生活')" id="tag-filter-生活" class="px-2 py-0.5 rounded hover:bg-neutral-200/40 dark:hover:bg-neutral-800/40 transition-all">生活</button>
+            <button onclick="filterByTag('灵感')" id="tag-filter-灵感" class="px-2 py-0.5 rounded hover:bg-neutral-200/40 dark:hover:bg-neutral-800/40 transition-all">灵感</button>
+        </div>
+
+        <!-- 多选操作栏 -->
+        <div id="selection-bar" class="hidden px-4 pb-2 flex items-center justify-between flex-shrink-0">
+            <span id="selection-count" class="text-[12px] text-neutral-500 dark:text-neutral-400">已选择 0 项</span>
+            <div class="flex items-center space-x-2">
+                <button onclick="exportSelectedToWord()" class="px-3 py-1.5 text-[12px] rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 border border-blue-500/10 transition-all duration-200 flex items-center space-x-1.5">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 stroke-[1.5]"></i>
+                    <span>导出 Word</span>
+                </button>
+                <button onclick="exitSelectionMode()" class="px-2 py-1.5 text-[12px] rounded-lg text-neutral-400 dark:text-neutral-500 hover:bg-neutral-200/40 dark:hover:bg-neutral-800/40 transition-all">
+                    取消
+                </button>
+            </div>
+        </div>
+
+        <!-- 备忘列表 -->
+        <div id="note-list" class="flex-1 overflow-y-auto px-2 space-y-0.5 pb-4">
+            <!-- 动态渲染 -->
+        </div>
+
+        <!-- 边栏底部：回收站入口 -->
+        <div class="p-3 border-t border-neutral-200/40 dark:border-neutral-800/60 bg-neutral-100/30 dark:bg-neutral-900/10">
+            <button onclick="filterByTag('trash')" id="tag-filter-trash" class="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[13px] text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:hover:text-neutral-100 transition-all duration-200">
+                <span class="flex items-center space-x-2.5">
+                    <i data-lucide="trash-2" class="w-4 h-4 stroke-[1.5]"></i>
+                    <span>回收站</span>
+                </span>
+                <span id="trash-count" class="text-[11px] px-1.5 py-0.5 rounded-md bg-neutral-200/60 dark:bg-neutral-800/60 text-neutral-500 dark:text-neutral-400 font-mono scale-90">0</span>
+            </button>
+        </div>
+            </div>
+        </aside>
+
+        <!-- 右侧沉浸式编辑与展示区 -->
+        <main class="flex-1 min-w-0 h-full bg-white dark:bg-[#0A0A0A] relative flex flex-col overflow-hidden">
+            <!-- 欢迎空状态 -->
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-center p-8 select-none z-0">
+                <!-- 边栏展开快捷按钮 (当空状态且边栏已收起时显示) -->
+                <button id="empty-sidebar-expand-btn" onclick="toggleSidebar()" class="hidden absolute top-3.5 left-4 px-2.5 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200/80 dark:bg-neutral-800/80 dark:hover:bg-neutral-700/80 text-neutral-600 dark:text-neutral-300 transition-all z-20 shadow-xs flex items-center space-x-1.5 text-xs font-medium" title="展开边栏 (Ctrl+\)">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                        <rect width="18" height="18" x="3" y="3" rx="2" />
+                        <path d="M9 3v18" />
+                        <path d="m13 15 3-3-3-3" />
+                    </svg>
+                    <span>展开笔记列表</span>
+                </button>
+                <img src="./assets/icon.png" class="w-16 h-16 rounded-2xl shadow-lg shadow-neutral-500/10 mb-5 object-cover transition-transform hover:scale-105 duration-300" alt="Spark.Memo Logo">
+                <p class="text-[14px] text-neutral-400 dark:text-neutral-500 font-medium tracking-wide">笔尖触及纸张，灵感于此汇聚</p>
+                <p class="text-[12px] text-neutral-400/60 dark:text-neutral-500/50 mt-1">点击左侧加号，开启一段纯净的记录</p>
+            </div>
+
+            <!-- 沉浸式编辑器组件 -->
+            <div id="editor-container" class="hidden flex-1 min-w-0 flex flex-col h-full z-10 relative overflow-hidden">
+                <!-- 编辑器顶栏工具条 (高度对齐 h-[50px]) -->
+                <div class="h-[50px] border-b border-neutral-100 dark:border-neutral-900/60 px-4 md:px-6 flex items-center justify-between flex-shrink-0 select-none w-full min-w-0">
+                    <div class="flex items-center space-x-3 text-xs text-neutral-400 dark:text-neutral-500 min-w-0 overflow-hidden">
+                        <!-- 边栏展开快捷按钮 (当边栏收起时显示) -->
+                        <button id="sidebar-expand-btn" onclick="toggleSidebar()" class="hidden p-1.5 -ml-1 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 transition-all duration-200 flex-shrink-0" title="展开边栏 (Ctrl+\)">
+                            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="18" x="3" y="3" rx="2" />
+                                <path d="M9 3v18" />
+                                <path d="m13 15 3-3-3-3" />
+                            </svg>
+                        </button>
+                        <span id="editor-date" class="truncate flex-shrink-0">更新于：今天</span>
+                        
+                        <div id="editor-tags-bar" class="flex items-center space-x-1 border-l border-neutral-200 dark:border-neutral-800 pl-3 flex-shrink-0">
+                            <button onclick="updateActiveNoteTag('工作')" id="note-tag-工作" class="px-2 py-0.5 rounded transition-all duration-200 hover:bg-blue-500/5 text-neutral-400 dark:text-neutral-500">工作</button>
+                            <button onclick="updateActiveNoteTag('生活')" id="note-tag-生活" class="px-2 py-0.5 rounded transition-all duration-200 hover:bg-emerald-500/5 text-neutral-400 dark:text-neutral-500">生活</button>
+                            <button onclick="updateActiveNoteTag('灵感')" id="note-tag-灵感" class="px-2 py-0.5 rounded transition-all duration-200 hover:bg-amber-500/5 text-neutral-400 dark:text-neutral-500">灵感</button>
+                        </div>
+                    </div>
+
+                    <div id="editor-tools" class="flex items-center space-x-1.5 flex-shrink-0">
+                        <!-- 插入本地图片按钮 -->
+                        <button onclick="startInsertImageFlow()" class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all duration-200 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 flex items-center space-x-1" title="插入本地图片（零额外存储占用，直接引用本地文件）">
+                            <i data-lucide="image" class="w-4 h-4 stroke-[1.5]"></i>
+                        </button>
+
+                    <!-- 调节正文字号下拉 -->
+                    <div class="relative">
+                        <button id="font-size-btn" onclick="toggleFontSizeMenu(event)" class="px-2 py-1 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all duration-200 text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300 flex items-center space-x-1 text-xs font-medium" title="调节正文字号">
+                            <span class="font-serif font-bold text-[13px] tracking-tight">Aa</span>
+                            <span id="font-size-label" class="text-[11px] opacity-75 font-sans">16px</span>
+                        </button>
+                        <!-- 字号调节卡片 -->
+                        <div id="font-size-menu" class="hidden absolute right-0 top-full mt-2 w-56 rounded-xl bg-white dark:bg-[#1C1C1E] border border-neutral-200/80 dark:border-neutral-800/80 shadow-2xl p-3 z-50 select-none">
+                            <div class="text-[11px] font-medium text-neutral-400 dark:text-neutral-500 mb-2 flex items-center justify-between">
+                                <span>正文字号</span>
+                                <span id="font-size-indicator" class="font-mono text-xs font-semibold text-neutral-700 dark:text-neutral-300">16px</span>
+                            </div>
+                            <!-- 步进按钮 -->
+                            <div class="font-stepper-wrap flex items-center justify-between bg-neutral-100/80 dark:bg-neutral-800/50 rounded-lg p-1 mb-2.5">
+                                <button onclick="changeFontSize(-1)" class="font-stepper-btn w-7 h-7 rounded-md bg-white dark:bg-neutral-700 shadow-xs flex items-center justify-center text-sm font-bold text-neutral-600 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all active:scale-95" title="缩小字号">-</button>
+                                <span class="font-stepper-text text-xs text-neutral-500 dark:text-neutral-400">微调大小</span>
+                                <button onclick="changeFontSize(1)" class="font-stepper-btn w-7 h-7 rounded-md bg-white dark:bg-neutral-700 shadow-xs flex items-center justify-center text-sm font-bold text-neutral-600 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-600 transition-all active:scale-95" title="放大字号">+</button>
+                            </div>
+                            <!-- 常用字号预设 (配色全主题自适应) -->
+                            <div class="grid grid-cols-4 gap-1.5 text-[11px]">
+                                <button onclick="setFontSize(13)" class="font-preset-btn py-1 rounded-md text-center transition-all">13</button>
+                                <button onclick="setFontSize(14)" class="font-preset-btn py-1 rounded-md text-center transition-all">14</button>
+                                <button onclick="setFontSize(16)" class="font-preset-btn py-1 rounded-md text-center transition-all">16</button>
+                                <button onclick="setFontSize(18)" class="font-preset-btn py-1 rounded-md text-center transition-all">18</button>
+                                <button onclick="setFontSize(20)" class="font-preset-btn py-1 rounded-md text-center transition-all">20</button>
+                                <button onclick="setFontSize(22)" class="font-preset-btn py-1 rounded-md text-center transition-all">22</button>
+                                <button onclick="setFontSize(24)" class="font-preset-btn py-1 rounded-md text-center transition-all">24</button>
+                                <button onclick="setFontSize(28)" class="font-preset-btn py-1 rounded-md text-center transition-all">28</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="star-btn" onclick="toggleActiveNoteStar()" class="p-1.5 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-all duration-200 text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300" title="收藏">
+                        <i data-lucide="star" class="w-4 h-4 stroke-[1.5]"></i>
+                    </button>
+                    <button onclick="deleteActiveNote()" class="p-1.5 rounded-md hover:bg-red-500/5 text-neutral-400 hover:text-red-500 dark:hover:text-red-400 transition-all duration-200" title="删除">
+                        <i data-lucide="trash-2" class="w-4 h-4 stroke-[1.5]"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 回收站高级提示横幅 (Linear 灵感微光通知) -->
+            <div id="trash-banner" class="hidden bg-amber-500/[0.04] border-b border-amber-500/10 text-amber-600 dark:text-amber-500/90 text-[12px] py-2 px-6 flex justify-between items-center select-none flex-shrink-0 w-full min-w-0">
+                <span class="flex items-center space-x-2">
+                    <i data-lucide="info" class="w-3.5 h-3.5 stroke-[1.5]"></i>
+                    <span id="trash-banner-text">此备忘录已在回收站中。</span>
+                </span>
+                <div class="flex items-center space-x-4">
+                    <button onclick="restoreActiveNote()" class="hover:underline font-medium flex items-center space-x-1">
+                        <i data-lucide="rotate-ccw" class="w-3 h-3 stroke-[2]"></i><span>恢复内容</span>
+                    </button>
+                    <button onclick="deleteActiveNote()" class="text-red-500 dark:text-red-400 hover:underline font-medium flex items-center space-x-1">
+                        <i data-lucide="x" class="w-3 h-3 stroke-[2]"></i><span>彻底删除</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 核心沉浸式文本区域 (自适应宽度，优雅呼吸感，彻底杜绝内容截断) -->
+            <div class="flex-1 min-w-0 overflow-y-auto px-6 sm:px-10 md:px-14 lg:px-16 pt-7 pb-12 max-w-4xl w-full mx-auto flex flex-col space-y-4">
+                <input id="note-title" type="text" placeholder="未命名备忘" oninput="saveCurrentState()"
+                    class="w-full min-w-0 text-2xl md:text-3xl font-semibold tracking-tight bg-transparent text-[#171717] dark:text-[#F5F5F7] placeholder-neutral-200 dark:placeholder-neutral-800/80 disabled:opacity-60 disabled:cursor-not-allowed outline-none">
+                
+                <!-- 正文上方图片缩略图排（支持横向滑动、点击查看大图、删除、零额外存储占用、限制在父容器内） -->
+                <div id="note-images-bar" class="hidden flex items-center space-x-3 overflow-x-auto py-2.5 px-0.5 scrollbar-thin select-none w-full max-w-full min-w-0">
+                    <!-- 缩略图由 JS 动态渲染 -->
+                </div>
+
+                <textarea id="note-content" placeholder="开始构思你的想法..." oninput="saveCurrentState()"
+                    class="w-full min-w-0 flex-1 text-[15px] md:text-[16px] leading-relaxed bg-transparent text-neutral-800 dark:text-neutral-200 placeholder-neutral-200 dark:placeholder-neutral-800/80 resize-none pb-20 disabled:opacity-60 disabled:cursor-not-allowed outline-none break-words whitespace-pre-wrap"></textarea>
+            </div>
+
+            <!-- 右下角字数统计浮标 (极简优雅，跟随主题) -->
+            <div id="word-count-badge" class="absolute bottom-5 right-7 z-20 pointer-events-none select-none px-2.5 py-1 rounded-full text-[11px] font-mono tracking-wide shadow-xs transition-all duration-200 flex items-center space-x-1">
+                <span id="word-count-text">0字</span>
+            </div>
+        </div>
+    </main>
+    </div>
+
+    <script>
+        // --- 核心状态 ---
+        let notes = JSON.parse(localStorage.getItem('memos_data')) || [];
+        let activeNoteId = localStorage.getItem('memos_active_id') || null;
+        let currentSearchQuery = '';
+        let currentFilterTag = 'all'; // 'all', '工作', '生活', '灵感', 'trash'
+        let isSelectionMode = false;
+        let selectedNoteIds = new Set();
+        let isSidebarCollapsed = localStorage.getItem('memos_sidebar_collapsed') === 'true';
+
+        const tagColors = {
+            '工作': 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/10',
+            '生活': 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/10',
+            '灵感': 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/10',
+        };
+
+        // --- 侧边栏折叠/展开系统 ---
+        function toggleSidebar() {
+            isSidebarCollapsed = !isSidebarCollapsed;
+            applySidebarState();
+            localStorage.setItem('memos_sidebar_collapsed', isSidebarCollapsed);
+        }
+
+        function applySidebarState() {
+            const sidebar = document.getElementById('app-sidebar');
+            const expandBtn = document.getElementById('sidebar-expand-btn');
+            const emptyExpandBtn = document.getElementById('empty-sidebar-expand-btn');
+            if (!sidebar) return;
+
+            if (isSidebarCollapsed) {
+                sidebar.classList.add('sidebar-collapsed');
+                if (expandBtn) expandBtn.classList.remove('hidden');
+                if (emptyExpandBtn) emptyExpandBtn.classList.remove('hidden');
+            } else {
+                sidebar.classList.remove('sidebar-collapsed');
+                if (expandBtn) expandBtn.classList.add('hidden');
+                if (emptyExpandBtn) emptyExpandBtn.classList.add('hidden');
+            }
+        }
+
+        // --- 初始化应用 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            initFontSize();
+            initNoteImagesBarWheel();
+            applySidebarState();
+            purgeOldDeletedNotes(); // 启动无感清空过期碎片
+            renderSidebar();
+            if (activeNoteId && notes.find(n => n.id === activeNoteId)) {
+                switchActiveNote(activeNoteId);
+            } else {
+                showEmptyState();
+            }
+            if (window.sparkBridge && window.sparkBridge.updateSyncData) {
+                window.sparkBridge.updateSyncData({ notes, activeNoteId });
+            }
+            lucide.createIcons();
+        });
+
+        // --- 主题控制 ---
+        // --- 5款精选颜色模式与主题管理系统 ---
+        const themeTitleBarColors = {
+            light: { color: '#FAFAFA', symbolColor: '#525252' },
+            dark: { color: '#0A0A0A', symbolColor: '#A3A3A3' },
+            warm: { color: '#F8F5EE', symbolColor: '#78716C' },
+            violet: { color: '#161420', symbolColor: '#A78BFA' },
+            teal: { color: '#0C1619', symbolColor: '#2DD4BF' }
+        };
+
+        function initTheme() {
+            let savedTheme = localStorage.getItem('memos_theme');
+            if (!savedTheme) {
+                savedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            }
+            setTheme(savedTheme);
+        }
+
+        function setTheme(themeName) {
+            const validThemes = ['light', 'dark', 'warm', 'violet', 'teal'];
+            if (!validThemes.includes(themeName)) themeName = 'light';
+
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('memos_theme', themeName);
+
+            // 深色系主题保留 dark 类以维持基础对比度与表单高反差
+            if (['dark', 'violet', 'teal'].includes(themeName)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+
+            // 同步更新原生窗口标题栏与控制按钮配色
+            if (window.sparkBridge && window.sparkBridge.setTitleBarTheme) {
+                const colors = themeTitleBarColors[themeName] || themeTitleBarColors.light;
+                window.sparkBridge.setTitleBarTheme(colors);
+            }
+
+            updateThemeMenuUI(themeName);
+            renderSidebar();
+            if (window.lucide) lucide.createIcons();
+
+            const menu = document.getElementById('theme-menu');
+            if (menu) menu.classList.add('hidden');
+        }
+
+        function toggleThemeMenu(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('theme-menu');
+            if (menu) {
+                menu.classList.toggle('hidden');
+            }
+        }
+
+        function updateThemeMenuUI(themeName) {
+            document.querySelectorAll('.theme-option').forEach(el => {
+                const val = el.getAttribute('data-theme-val');
+                const check = el.querySelector('.theme-check');
+                if (val === themeName) {
+                    el.classList.add('bg-neutral-100', 'dark:bg-neutral-800/80', 'font-semibold');
+                    if (check) check.classList.remove('hidden');
+                } else {
+                    el.classList.remove('bg-neutral-100', 'dark:bg-neutral-800/80', 'font-semibold');
+                    if (check) check.classList.add('hidden');
+                }
+            });
+        }
+
+        // 全局点击监听：收起色彩模式选择下拉与字号调节下拉
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('theme-menu');
+            const btn = document.getElementById('theme-btn');
+            if (menu && !menu.classList.contains('hidden')) {
+                if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+                    menu.classList.add('hidden');
+                }
+            }
+
+            const fontMenu = document.getElementById('font-size-menu');
+            const fontBtn = document.getElementById('font-size-btn');
+            if (fontMenu && !fontMenu.classList.contains('hidden')) {
+                if (!fontMenu.contains(e.target) && (!fontBtn || !fontBtn.contains(e.target))) {
+                    fontMenu.classList.add('hidden');
+                }
+            }
+        });
+
+        // --- 正文字号调节系统 ---
+        let currentFontSize = parseInt(localStorage.getItem('memos_editor_font_size')) || 16;
+
+        function initFontSize() {
+            applyFontSize(currentFontSize);
+        }
+
+        function applyFontSize(size) {
+            if (isNaN(size) || size < 12) size = 12;
+            if (size > 36) size = 36;
+            currentFontSize = size;
+            localStorage.setItem('memos_editor_font_size', size);
+
+            const content = document.getElementById('note-content');
+            if (content) {
+                content.style.fontSize = size + 'px';
+                content.style.lineHeight = (size <= 15 ? '1.75' : size <= 20 ? '1.7' : '1.6');
+            }
+
+            const label = document.getElementById('font-size-label');
+            if (label) label.innerText = `${size}px`;
+
+            const indicator = document.getElementById('font-size-indicator');
+            if (indicator) indicator.innerText = `${size}px`;
+
+            // 预设按钮激活态高亮 (主题色彩自适应，去除突兀黄色)
+            document.querySelectorAll('.font-preset-btn').forEach(btn => {
+                const val = parseInt(btn.innerText);
+                btn.classList.toggle('font-preset-active', val === size);
+            });
+        }
+
+        function setFontSize(size) {
+            applyFontSize(size);
+        }
+
+        function changeFontSize(delta) {
+            applyFontSize(currentFontSize + delta);
+        }
+
+        function toggleFontSizeMenu(e) {
+            if (e) e.stopPropagation();
+            const menu = document.getElementById('font-size-menu');
+            if (menu) {
+                menu.classList.toggle('hidden');
+            }
+            // 互斥收起主题下拉
+            const themeMenu = document.getElementById('theme-menu');
+            if (themeMenu) themeMenu.classList.add('hidden');
+        }
+
+        // --- 本地图片管理系统 (只加顶部缩略图，不加正文，零额外存储占用，可放大浏览) ---
+        let currentPreviewingIndex = -1;
+        let previewZoomScale = 1;
+        let previewTranslateX = 0;
+        let previewTranslateY = 0;
+        let isPointerDown = false;
+        let isDraggingPreview = false;
+        let startPointerX = 0;
+        let startPointerY = 0;
+        let startTranslateX = 0;
+        let startTranslateY = 0;
+
+        function formatFileSize(bytes) {
+            if (!bytes || bytes === 0) return '';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        async function startInsertImageFlow() {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note || note.isDeleted) return;
+
+            if (!window.sparkBridge || !window.sparkBridge.selectImages) {
+                alert('当前运行环境不支持打开本地文件选择框');
+                return;
+            }
+
+            try {
+                const files = await window.sparkBridge.selectImages();
+                if (!files || files.length === 0) return;
+
+                if (!Array.isArray(note.images)) {
+                    note.images = [];
+                }
+
+                files.forEach(f => {
+                    note.images.push({
+                        id: 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                        path: f.path,
+                        fileUrl: f.fileUrl,
+                        name: f.name,
+                        size: f.size,
+                        addedAt: new Date().toISOString()
+                    });
+                });
+
+                note.updatedAt = new Date().toISOString();
+                saveDataToStorage();
+                renderNoteImages();
+            } catch (err) {
+                console.error('选取本地图片失败:', err);
+            }
+        }
+
+        // --- 缩略图拖拽排序逻辑 ---
+        let draggedThumbIndex = null;
+        let currentDropTargetIndex = null;
+        let isThumbDragging = false;
+
+        function handleThumbDragStart(e, idx) {
+            draggedThumbIndex = idx;
+            isThumbDragging = true;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(idx));
+            const card = e.currentTarget;
+            if (card) {
+                setTimeout(() => {
+                    if (isThumbDragging) card.classList.add('thumb-dragging');
+                }, 0);
+            }
+        }
+
+        function handleThumbDragOver(e, idx) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (currentDropTargetIndex !== idx) {
+                currentDropTargetIndex = idx;
+                renderThumbDropIndicators();
+            }
+        }
+
+        function handleThumbDragLeave(e, idx) {
+            if (currentDropTargetIndex === idx) {
+                currentDropTargetIndex = null;
+                renderThumbDropIndicators();
+            }
+        }
+
+        function handleThumbDrop(e, targetIdx) {
+            e.preventDefault();
+            if (draggedThumbIndex === null || draggedThumbIndex === undefined) return;
+            const fromIdx = draggedThumbIndex;
+            handleThumbDragEnd(e);
+            if (fromIdx !== targetIdx) {
+                reorderNoteImages(fromIdx, targetIdx);
+            }
+        }
+
+        function handleThumbDragOverEnd(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (currentDropTargetIndex !== 'end') {
+                currentDropTargetIndex = 'end';
+                renderThumbDropIndicators();
+            }
+        }
+
+        function handleThumbDragLeaveEnd(e) {
+            if (currentDropTargetIndex === 'end') {
+                currentDropTargetIndex = null;
+                renderThumbDropIndicators();
+            }
+        }
+
+        function handleThumbDropEnd(e) {
+            e.preventDefault();
+            if (draggedThumbIndex === null || draggedThumbIndex === undefined) return;
+            const fromIdx = draggedThumbIndex;
+            handleThumbDragEnd(e);
+            moveNoteImageToEnd(fromIdx);
+        }
+
+        function handleThumbDragEnd(e) {
+            draggedThumbIndex = null;
+            currentDropTargetIndex = null;
+            document.querySelectorAll('.image-thumb-card').forEach(card => {
+                card.classList.remove('thumb-dragging', 'thumb-drop-target');
+            });
+            const addBtn = document.getElementById('add-image-thumb-btn');
+            if (addBtn) addBtn.classList.remove('thumb-drop-target');
+            setTimeout(() => {
+                isThumbDragging = false;
+            }, 80);
+        }
+
+        function renderThumbDropIndicators() {
+            document.querySelectorAll('.image-thumb-card').forEach(card => {
+                const idx = parseInt(card.getAttribute('data-thumb-idx'));
+                if (idx === currentDropTargetIndex && idx !== draggedThumbIndex) {
+                    card.classList.add('thumb-drop-target');
+                } else {
+                    card.classList.remove('thumb-drop-target');
+                }
+            });
+            const addBtn = document.getElementById('add-image-thumb-btn');
+            if (addBtn) {
+                if (currentDropTargetIndex === 'end' && draggedThumbIndex !== null) {
+                    addBtn.classList.add('thumb-drop-target');
+                } else {
+                    addBtn.classList.remove('thumb-drop-target');
+                }
+            }
+        }
+
+        function reorderNoteImages(fromIdx, toIdx) {
+            if (!activeNoteId || fromIdx === toIdx) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note || !Array.isArray(note.images)) return;
+            if (fromIdx < 0 || toIdx < 0 || fromIdx >= note.images.length || toIdx >= note.images.length) return;
+
+            const [moved] = note.images.splice(fromIdx, 1);
+            note.images.splice(toIdx, 0, moved);
+            note.updatedAt = new Date().toISOString();
+            saveDataToStorage();
+            renderNoteImages();
+        }
+
+        function moveNoteImageToEnd(fromIdx) {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note || !Array.isArray(note.images)) return;
+            if (fromIdx < 0 || fromIdx >= note.images.length) return;
+            if (fromIdx === note.images.length - 1) return;
+
+            const [moved] = note.images.splice(fromIdx, 1);
+            note.images.push(moved);
+            note.updatedAt = new Date().toISOString();
+            saveDataToStorage();
+            renderNoteImages();
+        }
+
+        function renderNoteImages() {
+            const bar = document.getElementById('note-images-bar');
+            if (!bar) return;
+
+            if (!activeNoteId) {
+                bar.classList.add('hidden');
+                bar.innerHTML = '';
+                return;
+            }
+
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note || !Array.isArray(note.images) || note.images.length === 0) {
+                bar.classList.add('hidden');
+                bar.innerHTML = '';
+                return;
+            }
+
+            bar.classList.remove('hidden');
+
+            let html = note.images.map((img, idx) => `
+                <div class="image-thumb-card group relative flex-shrink-0 w-24 h-24 rounded-2xl overflow-hidden border border-neutral-200/80 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 cursor-grab active:cursor-grabbing shadow-xs hover:shadow-md select-none"
+                    draggable="${!note.isDeleted ? 'true' : 'false'}"
+                    data-thumb-idx="${idx}"
+                    ondragstart="handleThumbDragStart(event, ${idx})"
+                    ondragover="handleThumbDragOver(event, ${idx})"
+                    ondragleave="handleThumbDragLeave(event, ${idx})"
+                    ondrop="handleThumbDrop(event, ${idx})"
+                    ondragend="handleThumbDragEnd(event)"
+                    onclick="openImagePreview(${idx})"
+                    title="${!note.isDeleted ? '拖拽可调整图片顺序 · 点击放大查看' : '点击放大查看'}">
+                    <img src="${img.fileUrl}" class="w-full h-full object-cover pointer-events-none select-none" draggable="false" onerror="this.src='./assets/icon.png';" alt="${img.name}">
+                    
+                    <!-- 序号角标 (高性能无模糊渲染) -->
+                    <span class="absolute bottom-1.5 left-2 px-1.5 py-0.5 rounded-md bg-black/75 text-[10px] text-white/95 font-mono font-medium shadow-xs select-none pointer-events-none">${idx + 1}</span>
+
+                    <div class="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-between p-1.5 pointer-events-none">
+                        ${!note.isDeleted ? `
+                        <div class="w-5 h-5 rounded-full bg-black/50 text-white/90 flex items-center justify-center text-[10px] shadow" title="按住拖拽排序">
+                            <i data-lucide="grip-vertical" class="w-3 h-3 stroke-[2]"></i>
+                        </div>
+                        <button onclick="event.stopPropagation(); removeImageFromNote(${idx})" class="w-5 h-5 rounded-full bg-red-500/90 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow hover:scale-110 pointer-events-auto" title="从备忘移除">
+                            <i data-lucide="x" class="w-3 h-3 stroke-[2.5]"></i>
+                        </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            if (!note.isDeleted) {
+                html += `
+                    <button id="add-image-thumb-btn"
+                        onclick="startInsertImageFlow()"
+                        ondragover="handleThumbDragOverEnd(event)"
+                        ondragleave="handleThumbDragLeaveEnd(event)"
+                        ondrop="handleThumbDropEnd(event)"
+                        class="flex-shrink-0 w-24 h-24 rounded-2xl border-2 border-dashed border-neutral-300 dark:border-neutral-700 hover:border-violet-500/60 dark:hover:border-violet-400/60 hover:bg-neutral-500/5 flex flex-col items-center justify-center text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 transition-all text-xs space-y-1 select-none" title="添加图片 / 拖拽到此移至末尾">
+                        <i data-lucide="plus" class="w-5 h-5 stroke-[2]"></i>
+                        <span class="text-[10px] font-medium">添加图片</span>
+                    </button>
+                `;
+            }
+
+            bar.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
+            initNoteImagesBarWheel();
+        }
+
+        // --- 缩略图视窗原生级丝滑平滑滚动系统 (Native-smooth Lerp Engine) ---
+        let thumbTargetScroll = 0;
+        let thumbCurrentScroll = 0;
+        let isThumbScrolling = false;
+        let thumbRafId = null;
+
+        function initNoteImagesBarWheel() {
+            const bar = document.getElementById('note-images-bar');
+            if (!bar || bar._wheelInited) return;
+            bar._wheelInited = true;
+
+            // 监听滚轮事件，实时计算目标位置
+            bar.addEventListener('wheel', (e) => {
+                const maxScroll = bar.scrollWidth - bar.clientWidth;
+                if (maxScroll <= 0) return;
+                e.preventDefault();
+
+                let delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+                if (e.deltaMode === 1) delta *= 36;
+                else if (e.deltaMode === 2) delta *= bar.clientWidth;
+
+                // 触控板检测：高频小数或微小步进，直接 1:1 无感直通
+                const isTouchpad = Math.abs(delta) < 30 && !Number.isInteger(delta / 10);
+                if (isTouchpad) {
+                    bar.scrollLeft += delta;
+                    thumbTargetScroll = bar.scrollLeft;
+                    thumbCurrentScroll = bar.scrollLeft;
+                    isThumbScrolling = false;
+                    if (thumbRafId) cancelAnimationFrame(thumbRafId);
+                    thumbRafId = null;
+                    return;
+                }
+
+                // 物理鼠标滚轮：模拟正文 Chromium 原生丝滑滚动
+                if (!isThumbScrolling) {
+                    thumbTargetScroll = bar.scrollLeft;
+                    thumbCurrentScroll = bar.scrollLeft;
+                }
+
+                // 每格滚轮平滑推进约 1.2 个卡片宽度（~130px），与正文行进手感完全契合
+                const step = (delta > 0 ? 1 : -1) * Math.max(120, Math.abs(delta) * 1.2);
+                thumbTargetScroll = Math.max(0, Math.min(maxScroll, thumbTargetScroll + step));
+
+                if (!isThumbScrolling) {
+                    isThumbScrolling = true;
+                    thumbRafId = requestAnimationFrame(renderThumbSmoothScroll);
+                }
+            }, { passive: false });
+
+            // 用户手动交互（点击、拖拽卡片、滚动条）立刻对齐目标
+            const syncImmediate = () => {
+                isThumbScrolling = false;
+                if (thumbRafId) cancelAnimationFrame(thumbRafId);
+                thumbRafId = null;
+                thumbTargetScroll = bar.scrollLeft;
+                thumbCurrentScroll = bar.scrollLeft;
+            };
+            bar.addEventListener('mousedown', syncImmediate);
+            bar.addEventListener('pointerdown', syncImmediate);
+            bar.addEventListener('scroll', () => {
+                if (!isThumbScrolling) {
+                    thumbTargetScroll = bar.scrollLeft;
+                    thumbCurrentScroll = bar.scrollLeft;
+                }
+            }, { passive: true });
+        }
+
+        function renderThumbSmoothScroll() {
+            if (!isThumbScrolling) return;
+            const bar = document.getElementById('note-images-bar');
+            if (!bar) {
+                isThumbScrolling = false;
+                thumbRafId = null;
+                return;
+            }
+
+            const diff = thumbTargetScroll - thumbCurrentScroll;
+            if (Math.abs(diff) > 0.4) {
+                // 缓动插值系数 0.15：拥有完全一致的加速与软着陆减速曲线，绝对不卡顿
+                thumbCurrentScroll += diff * 0.15;
+                bar.scrollLeft = thumbCurrentScroll;
+                thumbRafId = requestAnimationFrame(renderThumbSmoothScroll);
+            } else {
+                bar.scrollLeft = thumbTargetScroll;
+                thumbCurrentScroll = thumbTargetScroll;
+                isThumbScrolling = false;
+                thumbRafId = null;
+            }
+        }
+
+        function removeImageFromNote(index) {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note || !Array.isArray(note.images)) return;
+
+            note.images.splice(index, 1);
+            note.updatedAt = new Date().toISOString();
+            saveDataToStorage();
+            renderNoteImages();
+        }
+
+        function openImagePreview(index) {
+            if (isThumbDragging) return; // 拖动调序时松手不误开预览弹窗
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note || !Array.isArray(note.images) || !note.images[index]) return;
+
+            currentPreviewingIndex = index;
+            const img = note.images[index];
+
+            const modal = document.getElementById('image-preview-modal');
+            document.getElementById('preview-image-name').innerText = img.name || '图片详情';
+            document.getElementById('preview-image-size').innerText = formatFileSize(img.size);
+            const elem = document.getElementById('preview-image-elem');
+            elem.src = img.fileUrl;
+
+            resetPreviewZoom();
+
+            modal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeImagePreviewModal() {
+            const modal = document.getElementById('image-preview-modal');
+            if (modal) modal.classList.add('hidden');
+            currentPreviewingIndex = -1;
+            resetPreviewZoom();
+        }
+
+        function resetPreviewZoom() {
+            previewZoomScale = 1;
+            previewTranslateX = 0;
+            previewTranslateY = 0;
+            isPointerDown = false;
+            isDraggingPreview = false;
+            updatePreviewTransform();
+        }
+
+        function zoomPreview(delta, clientX, clientY) {
+            const oldScale = previewZoomScale;
+            let newScale = Math.round((oldScale + delta) * 100) / 100;
+            if (newScale < 0.4) newScale = 0.4;
+            if (newScale > 5.0) newScale = 5.0;
+            if (newScale === oldScale) return;
+
+            const viewport = document.getElementById('preview-image-viewport');
+            if (viewport && clientX !== undefined && clientY !== undefined && newScale > 1.0) {
+                const rect = viewport.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                const ox = clientX - cx;
+                const oy = clientY - cy;
+
+                const ratio = newScale / oldScale;
+                previewTranslateX = ox - (ox - previewTranslateX) * ratio;
+                previewTranslateY = oy - (oy - previewTranslateY) * ratio;
+            } else if (newScale <= 1.0) {
+                previewTranslateX = 0;
+                previewTranslateY = 0;
+            } else if (viewport) {
+                const ratio = newScale / oldScale;
+                previewTranslateX = previewTranslateX * ratio;
+                previewTranslateY = previewTranslateY * ratio;
+            }
+
+            previewZoomScale = newScale;
+            updatePreviewTransform();
+        }
+
+        function updatePreviewTransform() {
+            const img = document.getElementById('preview-image-elem');
+            const badge = document.getElementById('preview-zoom-badge');
+            const viewport = document.getElementById('preview-image-viewport');
+            if (img) {
+                img.style.transform = `translate(${previewTranslateX}px, ${previewTranslateY}px) scale(${previewZoomScale})`;
+                img.style.transition = isDraggingPreview ? 'none' : 'transform 0.12s ease-out';
+            }
+            if (viewport) {
+                if (isDraggingPreview) {
+                    viewport.style.cursor = 'grabbing';
+                } else if (previewZoomScale > 1.05) {
+                    viewport.style.cursor = 'grab';
+                } else {
+                    viewport.style.cursor = 'default';
+                }
+            }
+            if (badge) {
+                badge.innerText = `${Math.round(previewZoomScale * 100)}%`;
+            }
+        }
+
+        function openPreviewImageInFolder() {
+            if (!activeNoteId || currentPreviewingIndex < 0) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note || !note.images || !note.images[currentPreviewingIndex]) return;
+
+            const img = note.images[currentPreviewingIndex];
+            if (window.sparkBridge && window.sparkBridge.showInFolder) {
+                window.sparkBridge.showInFolder(img.path);
+            }
+        }
+
+        function openPreviewImageDefault() {
+            if (!activeNoteId || currentPreviewingIndex < 0) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (!note || !note.images || !note.images[currentPreviewingIndex]) return;
+
+            const img = note.images[currentPreviewingIndex];
+            if (window.sparkBridge && window.sparkBridge.openPath) {
+                window.sparkBridge.openPath(img.path);
+            }
+        }
+
+        function removePreviewImage() {
+            if (currentPreviewingIndex >= 0) {
+                removeImageFromNote(currentPreviewingIndex);
+                closeImagePreviewModal();
+            }
+        }
+
+        // 初始化图片缩放与交互系统
+        window.addEventListener('load', () => {
+            const viewport = document.getElementById('preview-image-viewport');
+            const imgElem = document.getElementById('preview-image-elem');
+            const previewModal = document.getElementById('image-preview-modal');
+
+            if (previewModal) {
+                previewModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'image-preview-modal') closeImagePreviewModal();
+                });
+            }
+
+            if (viewport && imgElem) {
+                // 滚轮缩放：以鼠标当前光标位置为中心进行平滑等比缩放
+                viewport.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const delta = e.deltaY < 0 ? 0.25 : -0.25;
+                    zoomPreview(delta, e.clientX, e.clientY);
+                    if (isPointerDown) {
+                        startPointerX = e.clientX;
+                        startPointerY = e.clientY;
+                        startTranslateX = previewTranslateX;
+                        startTranslateY = previewTranslateY;
+                    }
+                }, { passive: false });
+
+                // 鼠标左键按下：准备拖动，按住并移动时才进入平移状态
+                viewport.addEventListener('pointerdown', (e) => {
+                    if (e.button !== 0) return; // 严格仅响应鼠标主键（左键）
+                    if (e.target.closest('button')) return;
+                    e.preventDefault();
+
+                    isPointerDown = true;
+                    isDraggingPreview = false;
+                    startPointerX = e.clientX;
+                    startPointerY = e.clientY;
+                    startTranslateX = previewTranslateX;
+                    startTranslateY = previewTranslateY;
+
+                    try {
+                        viewport.setPointerCapture(e.pointerId);
+                    } catch (err) {}
+                });
+
+                // 鼠标移动：必须物理按住鼠标左键并且发生实质位移才移动图片
+                viewport.addEventListener('pointermove', (e) => {
+                    if (!isPointerDown) return;
+
+                    // 实时硬件按键检测：若左键未按住（e.buttons 的 bit 0 为 0），立即终止拖拽
+                    if ((e.buttons & 1) !== 1) {
+                        isPointerDown = false;
+                        isDraggingPreview = false;
+                        updatePreviewTransform();
+                        return;
+                    }
+
+                    const dx = e.clientX - startPointerX;
+                    const dy = e.clientY - startPointerY;
+
+                    // 死区阈值：位移大于 3px 才激活移动，普通点按绝不跟随
+                    if (!isDraggingPreview && Math.hypot(dx, dy) > 3) {
+                        isDraggingPreview = true;
+                    }
+
+                    if (isDraggingPreview) {
+                        previewTranslateX = startTranslateX + dx;
+                        previewTranslateY = startTranslateY + dy;
+                        updatePreviewTransform();
+                    }
+                });
+
+                // 鼠标松开或取消：立刻彻底释放拖拽，杜绝吸附游走
+                const endPointerDrag = (e) => {
+                    if (!isPointerDown) return;
+                    isPointerDown = false;
+                    isDraggingPreview = false;
+                    try {
+                        if (viewport.hasPointerCapture && viewport.hasPointerCapture(e.pointerId)) {
+                            viewport.releasePointerCapture(e.pointerId);
+                        }
+                    } catch (err) {}
+                    updatePreviewTransform();
+                };
+
+                viewport.addEventListener('pointerup', endPointerDrag);
+                viewport.addEventListener('pointercancel', endPointerDrag);
+
+                // 全局兜底：窗口失焦或全局鼠标释放时强行停止
+                window.addEventListener('mouseup', () => {
+                    if (isPointerDown || isDraggingPreview) {
+                        isPointerDown = false;
+                        isDraggingPreview = false;
+                        updatePreviewTransform();
+                    }
+                });
+                window.addEventListener('blur', () => {
+                    isPointerDown = false;
+                    isDraggingPreview = false;
+                    updatePreviewTransform();
+                });
+
+                // 阻止任何原生浏览器图片幽灵拖拽
+                viewport.addEventListener('dragstart', (e) => e.preventDefault());
+                imgElem.addEventListener('dragstart', (e) => e.preventDefault());
+
+                // 双击放大/还原（以光标所在位置为中心放大到 2.0x，再次双击还原）
+                viewport.addEventListener('dblclick', (e) => {
+                    if (e.target.closest('button')) return;
+                    e.stopPropagation();
+                    if (previewZoomScale > 1.1) {
+                        resetPreviewZoom();
+                    } else {
+                        zoomPreview(2.0 - previewZoomScale, e.clientX, e.clientY);
+                    }
+                });
+            }
+
+            // 全局快捷键
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeImagePreviewModal();
+                }
+                // Ctrl+\ 或 Cmd+\ 快捷折叠/展开侧边栏
+                if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
+                    e.preventDefault();
+                    toggleSidebar();
+                }
+            });
+        });
+
+        // --- 核心清理机制（30天自动销毁） ---
+        function purgeOldDeletedNotes() {
+            const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+            const now = Date.now();
+            let hasChanged = false;
+
+            notes = notes.filter(note => {
+                if (note.isDeleted && note.deletedAt) {
+                    const elapsed = now - new Date(note.deletedAt).getTime();
+                    if (elapsed > thirtyDaysInMs) {
+                        hasChanged = true;
+                        return false; // 超过30天，彻底从物理存储中抹除
+                    }
+                }
+                return true;
+            });
+
+            if (hasChanged) saveDataToStorage();
+        }
+
+        // --- 数据操作层 ---
+        function createNewNote() {
+            // 如果在回收站视图，点击新建需要强制切回常规全部视图
+            if (currentFilterTag === 'trash') {
+                filterByTag('all');
+            }
+
+            // 新建备忘时退出多选模式
+            if (isSelectionMode) exitSelectionMode();
+
+            const newNote = {
+                id: 'note_' + Date.now(),
+                title: '',
+                content: '',
+                tag: '',
+                images: [],
+                isStarred: false,
+                isDeleted: false,
+                deletedAt: null,
+                updatedAt: new Date().toISOString()
+            };
+            notes.unshift(newNote);
+            saveDataToStorage();
+            switchActiveNote(newNote.id);
+            renderSidebar();
+            document.getElementById('note-title').focus();
+        }
+
+        function switchActiveNote(id) {
+            activeNoteId = id;
+            localStorage.setItem('memos_active_id', id);
+            
+            if (window.sparkBridge && window.sparkBridge.updateSyncData) {
+                window.sparkBridge.updateSyncData({ notes, activeNoteId: id });
+            }
+            
+            const note = notes.find(n => n.id === id);
+            if (!note) return showEmptyState();
+
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('editor-container').classList.remove('hidden');
+
+            // 填充表单 (过滤清除可能残存的图片路径标记，确保正文纯净排版)
+            document.getElementById('note-title').value = note.title || '';
+            const rawContent = note.content || '';
+            const cleanContent = rawContent.replace(/!\[([^\]]*)\]\([^\)]+\)\s*/g, '').trim();
+            if (cleanContent !== rawContent) {
+                note.content = cleanContent;
+                saveDataToStorage();
+            }
+            document.getElementById('note-content').value = cleanContent;
+            document.getElementById('editor-date').innerText = `更新于：${formatDate(note.updatedAt)}`;
+
+            // 处理回收站的只读约束与横幅提醒
+            const titleInput = document.getElementById('note-title');
+            const contentInput = document.getElementById('note-content');
+            const trashBanner = document.getElementById('trash-banner');
+            const toolsBar = document.getElementById('editor-tools');
+            const tagsBar = document.getElementById('editor-tags-bar');
+
+            if (note.isDeleted) {
+                // 1. 计算过期剩余天数
+                const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+                const elapsed = Date.now() - new Date(note.deletedAt).getTime();
+                const daysLeft = Math.max(1, Math.ceil((thirtyDaysInMs - elapsed) / (24 * 60 * 60 * 1000)));
+                
+                document.getElementById('trash-banner-text').innerText = `此备忘录已在回收站中，将于 ${daysLeft} 天后被永久清空。`;
+                trashBanner.classList.remove('hidden');
+                
+                // 2. 冻结编辑状态
+                titleInput.disabled = true;
+                contentInput.disabled = true;
+                toolsBar.classList.add('opacity-0', 'pointer-events-none');
+                tagsBar.classList.add('opacity-0', 'pointer-events-none');
+            } else {
+                trashBanner.classList.add('hidden');
+                titleInput.disabled = false;
+                contentInput.disabled = false;
+                toolsBar.classList.remove('opacity-0', 'pointer-events-none');
+                tagsBar.classList.remove('opacity-0', 'pointer-events-none');
+            }
+
+            // 同步星标状态
+            const starBtn = document.getElementById('star-btn');
+            if (note.isStarred) {
+                starBtn.innerHTML = `<i data-lucide="star" class="w-4 h-4 fill-amber-400 stroke-amber-400"></i>`;
+            } else {
+                starBtn.innerHTML = `<i data-lucide="star" class="w-4 h-4 stroke-[1.5]"></i>`;
+            }
+
+            // 同步标签激活状态
+            ['工作', '生活', '灵感'].forEach(t => {
+                const btn = document.getElementById(`note-tag-${t}`);
+                btn.className = "px-2 py-0.5 rounded text-xs transition-all duration-200 " + 
+                    (note.tag === t ? `${tagColors[t]} font-medium` : "text-neutral-400 dark:text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900");
+            });
+
+            renderNoteImages();
+            updateWordCount();
+            renderSidebar();
+            lucide.createIcons();
+        }
+
+        // --- 实时字数统计系统 (显示格式为“XXXX字”，极简优雅且全主题自适应) ---
+        function calculateNoteWordCount(text) {
+            if (!text) return 0;
+            // 过滤掉 markdown 图片语法避免路径被误计
+            let clean = text.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '').trim();
+            if (!clean) return 0;
+            // 提取中日韩文字 (每个字符算 1 字)
+            const cjkMatches = clean.match(/[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/g) || [];
+            // 提取中文全角标点符号 (每个符号算 1 字)
+            const punctMatches = clean.match(/[\u3000-\u303f\uff01-\uff60\u201c\u201d\u2018\u2019\u2014\u2026]/g) || [];
+            // 提取英文字词及连续数字 (每个连续单词/数字算 1 字，严格契合 Word 规范)
+            const wordMatches = clean
+                .replace(/[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af\u3000-\u303f\uff01-\uff60\u201c\u201d\u2018\u2019\u2014\u2026]/g, ' ')
+                .match(/[a-zA-Z0-9_\-]+/g) || [];
+            const count = cjkMatches.length + punctMatches.length + wordMatches.length;
+            return count > 0 ? count : clean.replace(/\s+/g, '').length;
+        }
+
+        function updateWordCount() {
+            const badgeText = document.getElementById('word-count-text');
+            if (!badgeText) return;
+            const title = document.getElementById('note-title')?.value || '';
+            const content = document.getElementById('note-content')?.value || '';
+            const combined = (title ? title + '\n' : '') + content;
+            badgeText.innerText = `${calculateNoteWordCount(combined)}字`;
+        }
+
+        function saveCurrentState() {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (note && !note.isDeleted) {
+                note.title = document.getElementById('note-title').value;
+                note.content = document.getElementById('note-content').value;
+                note.updatedAt = new Date().toISOString();
+                
+                document.getElementById('editor-date').innerText = `更新于：${formatDate(note.updatedAt)}`;
+                
+                saveDataToStorage();
+                updateSidebarItemDOM(note);
+                updateWordCount();
+            }
+        }
+
+        function deleteActiveNote() {
+            if (!activeNoteId) return;
+            const noteIndex = notes.findIndex(n => n.id === activeNoteId);
+            if (noteIndex === -1) return;
+
+            const note = notes[noteIndex];
+
+            if (note.isDeleted) {
+                // 如果已经在回收站中，则代表彻底销毁
+                notes.splice(noteIndex, 1);
+            } else {
+                // 否则进入“软删除”流程
+                note.isDeleted = true;
+                note.deletedAt = new Date().toISOString();
+                note.isStarred = false; // 进入回收站自动摘星
+            }
+            
+            saveDataToStorage();
+            
+            // 刷新并寻找下一个可渲染的项
+            const currentViewNotes = getFilteredNotes();
+            if (currentViewNotes.length > 0) {
+                switchActiveNote(currentViewNotes[0].id);
+            } else {
+                showEmptyState();
+            }
+            renderSidebar();
+        }
+
+        function restoreActiveNote() {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (note && note.isDeleted) {
+                note.isDeleted = false;
+                note.deletedAt = null;
+                note.updatedAt = new Date().toISOString();
+                
+                saveDataToStorage();
+                switchActiveNote(activeNoteId);
+                renderSidebar();
+            }
+        }
+
+        function toggleActiveNoteStar() {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (note && !note.isDeleted) {
+                note.isStarred = !note.isStarred;
+                saveDataToStorage();
+                switchActiveNote(activeNoteId);
+            }
+        }
+
+        function updateActiveNoteTag(selectedTag) {
+            if (!activeNoteId) return;
+            const note = notes.find(n => n.id === activeNoteId);
+            if (note && !note.isDeleted) {
+                note.tag = (note.tag === selectedTag) ? '' : selectedTag;
+                saveDataToStorage();
+                switchActiveNote(activeNoteId);
+            }
+        }
+
+        function showEmptyState() {
+            activeNoteId = null;
+            localStorage.removeItem('memos_active_id');
+            document.getElementById('empty-state').classList.remove('hidden');
+            document.getElementById('editor-container').classList.add('hidden');
+            renderNoteImages();
+        }
+
+        // --- 多选模式与导出 Word ---
+        function toggleSelectionMode() {
+            isSelectionMode = !isSelectionMode;
+            if (!isSelectionMode) {
+                selectedNoteIds.clear();
+                document.getElementById('selection-bar').classList.add('hidden');
+            }
+            renderSidebar();
+        }
+
+        function exitSelectionMode() {
+            isSelectionMode = false;
+            selectedNoteIds.clear();
+            document.getElementById('selection-bar').classList.add('hidden');
+            renderSidebar();
+        }
+
+        function toggleNoteSelection(id, checked) {
+            if (checked) {
+                selectedNoteIds.add(id);
+            } else {
+                selectedNoteIds.delete(id);
+            }
+            updateSelectionBar();
+            renderSidebar();
+        }
+
+        function updateSelectionBar() {
+            const bar = document.getElementById('selection-bar');
+            const count = document.getElementById('selection-count');
+            if (isSelectionMode && selectedNoteIds.size > 0) {
+                bar.classList.remove('hidden');
+                count.innerText = `已选择 ${selectedNoteIds.size} 项`;
+            } else if (isSelectionMode) {
+                bar.classList.add('hidden');
+            }
+        }
+
+        function exportSelectedToWord() {
+            const selectedNotes = notes.filter(n => selectedNoteIds.has(n.id) && !n.isDeleted);
+            if (selectedNotes.length === 0) {
+                alert('请至少选择一条备忘录');
+                return;
+            }
+
+            const exportBtn = document.querySelector('#selection-bar button:first-child');
+            const originalHtml = exportBtn.innerHTML;
+            exportBtn.disabled = true;
+            exportBtn.innerHTML = '<span>生成中…</span>';
+
+            try {
+                // 构建 Word 兼容的 HTML 文档（Word 直接打开，无需外部库）
+                let docHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+                    xmlns:w='urn:schemas-microsoft-com:office:word'
+                    xmlns='http://www.w3.org/TR/REC-html40'>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Spark.Memo 备忘录导出</title>
+                    <!--[if gte mso 9]>
+                    <xml>
+                        <w:WordDocument><w:View>Print</w:View></w:WordDocument>
+                    </xml>
+                    <![endif]-->
+                    <style>
+                        body { font-family: 'Microsoft YaHei', sans-serif; padding: 40pt; }
+                        h1 { font-size: 18pt; color: #1a1a1a; border-bottom: 1px solid #d0d0d0; padding-bottom: 6pt; margin-top: 20pt; margin-bottom: 4pt; }
+                        .meta { font-size: 9pt; color: #999; margin-bottom: 10pt; }
+                        .content { font-size: 11pt; line-height: 1.7; color: #333; white-space: pre-wrap; margin-bottom: 10pt; }
+                        hr.sep { border: none; border-top: 1px dashed #ccc; margin: 24pt 0; }
+                    </style>
+                </head>
+                <body>`;
+
+                selectedNotes.forEach((note, index) => {
+                    const title = escapeHtml(note.title) || '未命名备忘';
+                    const dateStr = formatDate(note.updatedAt);
+                    const tagStr = note.tag ? escapeHtml(note.tag) : '';
+                    const contentHtml = escapeHtml(note.content || '').replace(/\n/g, '<br>');
+
+                    if (index > 0) docHtml += '<hr class="sep">';
+                    docHtml += `<h1>${title}</h1>`;
+                    docHtml += `<p class="meta">日期：${dateStr}${tagStr ? '&emsp;标签：' + tagStr : ''}</p>`;
+                    docHtml += `<p class="content">${contentHtml || '&nbsp;'}</p>`;
+                });
+
+                docHtml += '</body></html>';
+
+                const blob = new Blob(['﻿' + docHtml], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Spark.Memo-备忘导出-${new Date().toLocaleDateString('zh-CN')}.doc`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                exitSelectionMode();
+            } catch (err) {
+                alert('导出失败：' + err.message);
+            } finally {
+                exportBtn.disabled = false;
+                exportBtn.innerHTML = originalHtml;
+                lucide.createIcons();
+            }
+        }
+
+        function saveDataToStorage() {
+            // 定制排序算法：未删除的按 [置顶优先 -> 时间倒序] 排序；已被删除的排在最后面
+            notes.sort((a, b) => {
+                if (a.isDeleted !== b.isDeleted) return a.isDeleted - b.isDeleted;
+                if (!a.isDeleted) {
+                    if (a.isStarred !== b.isStarred) return b.isStarred - a.isStarred;
+                }
+                return new Date(b.updatedAt) - new Date(a.updatedAt);
+            });
+            localStorage.setItem('memos_data', JSON.stringify(notes));
+            if (window.sparkBridge && window.sparkBridge.updateSyncData) {
+                window.sparkBridge.updateSyncData({ notes, activeNoteId });
+            }
+        }
+
+        // --- 过滤与搜索调度 ---
+        function handleSearch(val) {
+            currentSearchQuery = val.trim().toLowerCase();
+            renderSidebar();
+        }
+
+        function getFilteredNotes() {
+            return notes.filter(note => {
+                const matchesSearch = note.title.toLowerCase().includes(currentSearchQuery) || note.content.toLowerCase().includes(currentSearchQuery);
+                if (currentFilterTag === 'trash') {
+                    return note.isDeleted && matchesSearch;
+                } else {
+                    const matchesTag = currentFilterTag === 'all' || note.tag === currentFilterTag;
+                    return !note.isDeleted && matchesSearch && matchesTag;
+                }
+            });
+        }
+
+        function filterByTag(tag) {
+            currentFilterTag = tag;
+            // 切换视图时自动退出多选模式
+            if (isSelectionMode) exitSelectionMode();
+            
+            // 同步常规标签样式
+            ['all', '工作', '生活', '灵感'].forEach(t => {
+                const btn = document.getElementById(`tag-filter-${t}`);
+                if (t === tag) {
+                    btn.className = "px-2 py-0.5 rounded bg-neutral-200 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 font-medium transition-all";
+                } else {
+                    btn.className = "px-2 py-0.5 rounded hover:bg-neutral-200/40 dark:hover:bg-neutral-800/40 text-neutral-400 dark:text-neutral-500 transition-all";
+                }
+            });
+            
+            // 同步底部回收站专属样式
+            const trashBtn = document.getElementById('tag-filter-trash');
+            if (tag === 'trash') {
+                trashBtn.className = "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[13px] bg-neutral-200 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 font-medium transition-all";
+            } else {
+                trashBtn.className = "w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[13px] text-neutral-500 dark:text-neutral-400 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 hover:text-neutral-900 dark:hover:text-neutral-100 transition-all duration-200";
+            }
+            
+            // 视图切换后的焦点对齐
+            const currentViewNotes = getFilteredNotes();
+            if (currentViewNotes.length > 0) {
+                const isStillVisible = currentViewNotes.find(n => n.id === activeNoteId);
+                if (!isStillVisible) switchActiveNote(currentViewNotes[0].id);
+            } else {
+                showEmptyState();
+            }
+
+            renderSidebar();
+        }
+
+        // --- 视图渲染层 ---
+        function renderSidebar() {
+            const listContainer = document.getElementById('note-list');
+            listContainer.innerHTML = '';
+
+            const filteredNotes = getFilteredNotes();
+
+            // 实时同步回收站内现存的碎片总数
+            const trashNotesCount = notes.filter(n => n.isDeleted).length;
+            document.getElementById('trash-count').innerText = trashNotesCount;
+
+            if (filteredNotes.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-12 text-neutral-400/50 dark:text-neutral-500/40 text-xs tracking-wide">
+                        ${currentFilterTag === 'trash' ? '回收站空空如也' : '无符合条件的备忘'}
+                    </div>
+                `;
+                return;
+            }
+
+            filteredNotes.forEach(note => {
+                const isActive = note.id === activeNoteId;
+                const noteElement = document.createElement('div');
+                noteElement.id = `sidebar-item-${note.id}`;
+                noteElement.onclick = (e) => {
+                    if (e.target.closest('input[type="checkbox"]')) return;
+                    if (isSelectionMode && !note.isDeleted) {
+                        const checkbox = noteElement.querySelector('input[type="checkbox"]');
+                        if (checkbox) {
+                            checkbox.checked = !checkbox.checked;
+                            toggleNoteSelection(note.id, checkbox.checked);
+                        }
+                    } else {
+                        switchActiveNote(note.id);
+                    }
+                };
+
+                const isSelected = selectedNoteIds.has(note.id);
+                noteElement.className = `group relative p-3.5 mx-2 rounded-xl cursor-pointer transition-all duration-200 text-left select-none
+                    ${isActive && !isSelectionMode
+                        ? 'bg-white dark:bg-[#1C1C1E] shadow-soft dark:shadow-soft-dark border border-neutral-200/40 dark:border-neutral-800/60'
+                        : isSelected
+                            ? 'bg-blue-50 dark:bg-blue-900/10 border border-blue-200/40 dark:border-blue-700/30'
+                            : 'hover:bg-neutral-200/40 dark:hover:bg-neutral-800/40 border border-transparent'
+                    }`;
+
+                noteElement.innerHTML = `
+                    <div class="flex items-start gap-2">
+                        <div class="${isSelectionMode && !note.isDeleted ? 'pt-0.5 flex-shrink-0' : 'hidden'}">
+                            <input type="checkbox" onchange="toggleNoteSelection('${note.id}', this.checked)"
+                                ${isSelected ? 'checked' : ''}
+                                class="w-3.5 h-3.5 rounded border-neutral-300 dark:border-neutral-600 cursor-pointer accent-neutral-900 dark:accent-neutral-100">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between space-x-2">
+                                <h3 class="text-[13.5px] font-medium truncate flex-1 text-neutral-800 dark:text-neutral-200">
+                                    ${escapeHtml(note.title) || '<span class="text-neutral-300 dark:text-neutral-700 italic font-normal">未命名备忘</span>'}
+                                </h3>
+                                <div class="flex items-center space-x-1 flex-shrink-0 pt-0.5">
+                                    ${note.isStarred ? '<i data-lucide="star" class="w-3 h-3 fill-amber-400 stroke-amber-400"></i>' : ''}
+                                </div>
+                            </div>
+                            <p class="text-[11.5px] text-neutral-400 dark:text-neutral-500 line-clamp-2 mt-1 font-normal leading-normal break-all">
+                                ${escapeHtml(note.content) || '空内容'}
+                            </p>
+                            <div class="flex items-center justify-between mt-2.5">
+                                <span class="text-[10px] text-neutral-400/70 dark:text-neutral-500/60 font-mono">${formatDate(note.isDeleted ? note.deletedAt : note.updatedAt)}</span>
+                                ${note.tag && !note.isDeleted ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-medium ${tagColors[note.tag]}">${note.tag}</span>` : ''}
+                                ${note.isDeleted ? `<span class="text-[9px] px-1.5 py-0.5 rounded font-medium bg-neutral-200/50 dark:bg-neutral-800/50 text-neutral-400 dark:text-neutral-500">已删除</span>` : ''}
+                            </div>
+                        </div>
+                    </div>`;
+                listContainer.appendChild(noteElement);
+            });
+            lucide.createIcons();
+        }
+
+        function updateSidebarItemDOM(note) {
+            const item = document.getElementById(`sidebar-item-${note.id}`);
+            if (!item) return;
+            
+            const titleEl = item.querySelector('h3');
+            const contentEl = item.querySelector('p');
+            const dateEl = item.querySelector('span');
+
+            if (titleEl) titleEl.innerHTML = escapeHtml(note.title) || '<span class="text-neutral-300 dark:text-neutral-700 italic font-normal">未命名备忘</span>';
+            if (contentEl) contentEl.innerText = note.content || '空内容';
+            if (dateEl) dateEl.innerText = formatDate(note.updatedAt);
+        }
+
+        // --- 工具函数 ---
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            if (date.toDateString() === now.toDateString()) {
+                return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            }
+            return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+        }
+
+        function escapeHtml(string) {
+            const matchHtmlRegExp = /["'&<>]/;
+            const str = '' + string;
+            const match = matchHtmlRegExp.exec(str);
+            if (!match) return str;
+            let escape;
+            let html = '';
+            let index = 0;
+            let lastIndex = 0;
+            for (index = match.index; index < str.length; index++) {
+                switch (str.charCodeAt(index)) {
+                case 34: escape = '&quot;'; break;
+                case 38: escape = '&amp;'; break;
+                case 39: escape = '&#39;'; break;
+                case 60: escape = '&lt;'; break;
+                case 62: escape = '&gt;'; break;
+                default: continue;
+                }
+                if (lastIndex !== index) html += str.substring(lastIndex, index);
+                lastIndex = index + 1;
+                html += escape;
+            }
+            return lastIndex !== index ? html + str.substring(lastIndex, index) : html;
+        }
+
+        // --- 手机扫码同步功能 (方案一: Moo日记互通) ---
+        async function openPhoneSyncModal() {
+            const modal = document.getElementById('phone-sync-modal');
+            modal.classList.remove('hidden');
+            lucide.createIcons();
+
+            const activeNote = notes.find(n => n.id === activeNoteId);
+            const titleEl = document.getElementById('modal-note-title');
+            const wordsEl = document.getElementById('modal-note-words');
+            if (activeNote) {
+                titleEl.innerText = activeNote.title || '未命名备忘';
+                wordsEl.innerText = `${(activeNote.content || '').length} 字`;
+            } else {
+                titleEl.innerText = '全部备忘录（手机端可自选）';
+                wordsEl.innerText = `${notes.filter(n => !n.isDeleted).length} 篇`;
+            }
+
+            const qrLoading = document.getElementById('sync-qr-loading');
+            qrLoading.style.display = 'flex';
+
+            if (window.sparkBridge && window.sparkBridge.getSyncInfo) {
+                try {
+                    const info = await window.sparkBridge.getSyncInfo({
+                        notes: notes,
+                        activeNoteId: activeNoteId
+                    });
+                    renderSyncInfo(info);
+                } catch (err) {
+                    console.error('getSyncInfo error:', err);
+                    qrLoading.innerHTML = '<span class="text-red-500 text-xs">启动局域网服务失败</span>';
+                }
+            } else {
+                qrLoading.innerHTML = '<span class="text-neutral-400 text-xs">请在桌面客户端中运行此功能</span>';
+            }
+        }
+
+        function renderSyncInfo(info) {
+            const qrImg = document.getElementById('sync-qrcode-img');
+            const qrLoading = document.getElementById('sync-qr-loading');
+            const urlText = document.getElementById('sync-url-text');
+            const ipSelect = document.getElementById('sync-ip-select');
+
+            if (info.qrCodeDataUrl) {
+                qrImg.src = info.qrCodeDataUrl;
+                qrLoading.style.display = 'none';
+            }
+            urlText.innerText = info.url;
+
+            ipSelect.innerHTML = '';
+            (info.ips || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.address;
+                opt.innerText = `${item.name} (${item.address})${item.isRecommended ? ' ★推荐' : ''}`;
+                if (item.address === info.selectedIp) {
+                    opt.selected = true;
+                }
+                ipSelect.appendChild(opt);
+            });
+            lucide.createIcons();
+        }
+
+        async function onSyncIpChanged(newIp) {
+            if (!newIp || !window.sparkBridge || !window.sparkBridge.changeSyncIp) return;
+            const qrLoading = document.getElementById('sync-qr-loading');
+            qrLoading.style.display = 'flex';
+            try {
+                const info = await window.sparkBridge.changeSyncIp(newIp);
+                renderSyncInfo(info);
+            } catch (err) {
+                console.error('changeSyncIp error:', err);
+            }
+        }
+
+        function closePhoneSyncModal() {
+            document.getElementById('phone-sync-modal').classList.add('hidden');
+        }
+
+        function handleModalBackdropClick(e) {
+            if (e.target.id === 'phone-sync-modal') {
+                closePhoneSyncModal();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closePhoneSyncModal();
+            }
+        });
+
+        function copySyncUrl() {
+            const url = document.getElementById('sync-url-text').innerText;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById('copy-url-btn-text');
+                const orig = btn.innerText;
+                btn.innerText = '已复制!';
+                setTimeout(() => { btn.innerText = orig; }, 1500);
+            });
+        }
+
+        // --- 手机扫码接入双重授权 ---
+        let pendingAuthRequestId = null;
+
+        if (window.sparkBridge && window.sparkBridge.onAuthRequest) {
+            window.sparkBridge.onAuthRequest((data) => {
+                pendingAuthRequestId = data.requestId;
+                document.getElementById('auth-dev-name').innerText = data.deviceName || '移动设备';
+                document.getElementById('auth-dev-ip').innerText = data.ip || '局域网设备';
+                document.getElementById('auth-dev-time').innerText = data.time || '刚刚';
+
+                const modal = document.getElementById('device-auth-modal');
+                modal.classList.remove('hidden');
+                lucide.createIcons();
+            });
+        }
+
+        async function handleAuthResponse(allow) {
+            const modal = document.getElementById('device-auth-modal');
+            modal.classList.add('hidden');
+            if (!pendingAuthRequestId || !window.sparkBridge || !window.sparkBridge.respondAuth) return;
+
+            try {
+                await window.sparkBridge.respondAuth({
+                    requestId: pendingAuthRequestId,
+                    allow: allow
+                });
+                pendingAuthRequestId = null;
+            } catch (err) {
+                console.error('respondAuth error:', err);
+            }
+        }
+    </script>
+
+    <!-- 手机互联扫码弹窗 -->
+    <div id="phone-sync-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm transition-opacity duration-200" onclick="handleModalBackdropClick(event)">
+        <div class="bg-white dark:bg-[#18181B] border border-neutral-200/80 dark:border-neutral-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden flex flex-col transform transition-all" onclick="event.stopPropagation()">
+            <!-- 弹窗顶栏 -->
+            <div class="px-5 py-3.5 border-b border-neutral-100 dark:border-neutral-800/80 flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                        <i data-lucide="smartphone" class="w-4 h-4 stroke-[2]"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                            <span>手机扫码互传</span>
+                        </h3>
+                        <p class="text-[11px] text-neutral-400 dark:text-neutral-500">在手机端实时查看与复制当前备忘</p>
+                    </div>
+                </div>
+                <button onclick="closePhoneSyncModal()" class="p-1 rounded-lg text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
+                    <i data-lucide="x" class="w-4 h-4 stroke-[2]"></i>
+                </button>
+            </div>
+
+            <!-- 弹窗主体 -->
+            <div class="p-5 flex flex-col items-center text-center space-y-3.5">
+                <!-- 当前传输日记简报 -->
+                <div class="w-full px-3 py-2 rounded-xl bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-100 dark:border-neutral-800/60 flex items-center justify-between text-left">
+                    <div class="min-w-0 flex-1 mr-2">
+                        <div class="text-[10px] text-neutral-400 uppercase tracking-wider">传输日记</div>
+                        <div id="modal-note-title" class="text-xs font-medium text-neutral-800 dark:text-neutral-200 truncate">未命名备忘</div>
+                    </div>
+                    <span id="modal-note-words" class="text-[11px] font-mono px-2 py-0.5 rounded bg-neutral-200/50 dark:bg-neutral-800/80 text-neutral-500 flex-shrink-0">0 字</span>
+                </div>
+
+                <!-- 二维码展示区 -->
+                <div class="relative p-2.5 bg-white rounded-2xl shadow-sm border border-neutral-200/70 flex items-center justify-center">
+                    <img id="sync-qrcode-img" src="" alt="手机扫码二维码" class="w-48 h-48 object-contain rounded-lg">
+                    <div id="sync-qr-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-white/95 rounded-2xl text-xs text-neutral-500 space-y-2">
+                        <div class="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span>正在启动局域网通道...</span>
+                    </div>
+                </div>
+
+                <!-- 局域网信息 -->
+                <div class="w-full space-y-1.5">
+                    <div class="flex items-center justify-between text-[11px] text-neutral-500 dark:text-neutral-400 px-0.5">
+                        <span>局域网网卡：</span>
+                        <select id="sync-ip-select" onchange="onSyncIpChanged(this.value)" class="text-[11px] max-w-[200px] truncate bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 rounded px-2 py-0.5 border border-neutral-200 dark:border-neutral-700 outline-none">
+                            <option value="">正在检测...</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-neutral-100/80 dark:bg-neutral-800/60 border border-neutral-200/40 dark:border-neutral-700/40 text-[11px] font-mono text-neutral-600 dark:text-neutral-300">
+                        <span id="sync-url-text" class="truncate flex-1 text-left select-all">http://...</span>
+                        <button onclick="copySyncUrl()" class="px-2 py-0.5 rounded bg-neutral-200/70 hover:bg-neutral-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-[10px] font-sans text-neutral-700 dark:text-neutral-200 transition-all flex items-center space-x-1">
+                            <i data-lucide="copy" class="w-2.5 h-2.5 stroke-[1.5]"></i>
+                            <span id="copy-url-btn-text">复制</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 基本使用提示 -->
+                <div class="w-full text-left p-2.5 rounded-xl bg-neutral-100/70 dark:bg-neutral-800/50 border border-neutral-200/50 dark:border-neutral-700/50 text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed flex items-center space-x-2">
+                    <i data-lucide="info" class="w-3.5 h-3.5 stroke-[1.5] flex-shrink-0 text-neutral-400"></i>
+                    <span>请确保手机与电脑连接至同一 Wi-Fi 或局域网。</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 电脑端确认手机接入弹窗 -->
+    <div id="device-auth-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div class="bg-white dark:bg-[#18181B] border border-amber-500/40 rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center flex flex-col items-center">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-2xl mb-3 shadow-inner">
+                📱
+            </div>
+            <h3 class="text-base font-bold text-neutral-900 dark:text-neutral-100 mb-1">
+                手机扫码请求接入
+            </h3>
+            <p class="text-xs text-neutral-500 dark:text-neutral-400 mb-4">
+                检测到有移动设备尝试同步日记，是否允许？
+            </p>
+
+            <div class="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-200/60 dark:border-neutral-800 rounded-xl p-3 text-left space-y-1.5 text-xs mb-5">
+                <div class="flex justify-between">
+                    <span class="text-neutral-400">识别设备：</span>
+                    <span id="auth-dev-name" class="font-medium text-neutral-800 dark:text-neutral-200">iPhone 手机</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-neutral-400">设备 IP：</span>
+                    <span id="auth-dev-ip" class="font-mono text-neutral-700 dark:text-neutral-300">10.252.40.88</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-neutral-400">申请时间：</span>
+                    <span id="auth-dev-time" class="text-neutral-600 dark:text-neutral-400">刚刚</span>
+                </div>
+            </div>
+
+            <div class="flex w-full space-x-3">
+                <button onclick="handleAuthResponse(false)" class="flex-1 py-2.5 px-4 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-semibold text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all">
+                    拒绝
+                </button>
+                <button onclick="handleAuthResponse(true)" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white text-xs font-semibold shadow-lg shadow-amber-500/20 hover:brightness-105 transition-all">
+                    同意访问
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看大图与可缩放预览弹窗 (不用显示文件路径，支持滚轮与拖拽平滑缩放) -->
+    <div id="image-preview-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md select-none">
+        <div class="bg-white dark:bg-[#18181B] border border-neutral-200/80 dark:border-neutral-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden relative animate-in fade-in zoom-in-95 duration-150">
+            <!-- 弹窗顶栏 -->
+            <div class="px-5 py-3.5 border-b border-neutral-200/60 dark:border-neutral-800/60 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center space-x-2.5 truncate pr-4">
+                    <i data-lucide="image" class="w-4 h-4 text-amber-500 flex-shrink-0"></i>
+                    <span id="preview-image-name" class="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate">图片详情</span>
+                    <span id="preview-image-size" class="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-500 font-mono"></span>
+                </div>
+
+                <!-- 顶栏快捷缩放操作控件 -->
+                <div class="flex items-center space-x-2 flex-shrink-0">
+                    <div class="flex items-center space-x-1 bg-neutral-100 dark:bg-neutral-800/80 rounded-lg p-0.5 border border-neutral-200/60 dark:border-neutral-700/60">
+                        <button onclick="zoomPreview(-0.25)" class="w-7 h-7 rounded-md hover:bg-white dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 flex items-center justify-center transition-all active:scale-95" title="缩小 (滚轮下滚)">
+                            <i data-lucide="minus" class="w-3.5 h-3.5 stroke-[2]"></i>
+                        </button>
+                        <button onclick="resetPreviewZoom()" class="px-2 h-7 rounded-md hover:bg-white dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 font-mono text-xs font-medium flex items-center justify-center transition-all" title="点击还原 100% / 自适应">
+                            <span id="preview-zoom-badge">100%</span>
+                        </button>
+                        <button onclick="zoomPreview(0.25)" class="w-7 h-7 rounded-md hover:bg-white dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-300 flex items-center justify-center transition-all active:scale-95" title="放大 (滚轮上滚)">
+                            <i data-lucide="plus" class="w-3.5 h-3.5 stroke-[2]"></i>
+                        </button>
+                    </div>
+
+                    <button onclick="closeImagePreviewModal()" class="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all ml-1" title="关闭 (Esc)">
+                        <i data-lucide="x" class="w-4 h-4 stroke-[2]"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 图片主体展示区 (支持按住鼠标左键拖拽平移、滚轮缩放、双击切换缩放) -->
+            <div id="preview-image-viewport" class="flex-1 overflow-hidden relative p-4 flex items-center justify-center bg-neutral-900/10 dark:bg-black/50 min-h-[380px] max-h-[66vh] select-none touch-none" style="touch-action: none;">
+                <img id="preview-image-elem" src="" alt="预览图" class="max-h-[62vh] max-w-full rounded-xl object-contain shadow-lg transition-transform duration-75 select-none pointer-events-none" draggable="false" ondragstart="return false;">
+            </div>
+
+            <!-- 底部纯净动作栏 (完全去除文件路径显示，保持极简) -->
+            <div class="px-5 py-3 border-t border-neutral-200/60 dark:border-neutral-800/60 bg-neutral-50/50 dark:bg-neutral-900/40 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center space-x-2">
+                    <button onclick="openPreviewImageInFolder()" class="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-medium transition-all flex items-center space-x-1.5 shadow-xs" title="在 Windows 资源管理器中高亮选中文件">
+                        <i data-lucide="folder-open" class="w-3.5 h-3.5 stroke-[1.75]"></i>
+                        <span>在文件夹中显示</span>
+                    </button>
+                    <button onclick="openPreviewImageDefault()" class="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-medium transition-all flex items-center space-x-1.5 shadow-xs" title="调用系统默认图片查看器">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5 stroke-[1.75]"></i>
+                        <span>系统默认看图</span>
+                    </button>
+                </div>
+
+                <button onclick="removePreviewImage()" class="px-3 py-1.5 rounded-xl text-red-500 hover:bg-red-500/10 text-xs font-medium transition-all flex items-center space-x-1">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5 stroke-[1.75]"></i>
+                    <span>从备忘移除</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

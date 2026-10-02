@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Spark.Memo 手机互传</title>
+  <link rel="icon" type="image/png" href="/assets/icon.png">
+  <script src="/assets/crypto-js.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    :root {
+      --bg: #F8F9FA;
+      --card-bg: #FFFFFF;
+      --text-main: #1C1917;
+      --text-sub: #78716C;
+      --border: #E7E5E4;
+      --accent: #EAB308;
+      --accent-dark: #CA8A04;
+      --accent-light: #FEF08A;
+      --primary-btn: #1C1917;
+      --primary-btn-text: #FFFFFF;
+      --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0F0F10;
+        --card-bg: #1A1A1C;
+        --text-main: #F5F5F4;
+        --text-sub: #A8A29E;
+        --border: #292524;
+        --primary-btn: #F5F5F4;
+        --primary-btn-text: #1C1917;
+        --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+      }
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding-bottom: 120px;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* 顶部导航 */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(248, 249, 250, 0.85);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    @media (prefers-color-scheme: dark) {
+      header {
+        background: rgba(15, 15, 16, 0.85);
+      }
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand img {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22C55E;
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-icon {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      background: var(--card-bg);
+    }
+    .btn-icon:active {
+      opacity: 0.7;
+    }
+
+    /* 容器 */
+    main {
+      flex: 1;
+      padding: 16px;
+      max-width: 680px;
+      width: 100%;
+      margin: 0 auto;
+      overflow-x: hidden;
+    }
+
+    /* 备忘切换条与快捷翻页 */
+    .note-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .note-picker-btn {
+      flex: 1;
+      min-width: 0;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 9px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+      transition: all 0.15s ease;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .note-picker-btn:active {
+      transform: scale(0.985);
+      background: var(--bg);
+    }
+    .note-picker-icon {
+      font-size: 18px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .note-picker-text-wrap {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+    }
+    .note-picker-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .note-picker-sub {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 1px;
+    }
+    .chevron-down {
+      color: var(--text-sub);
+      flex-shrink: 0;
+    }
+    .nav-arrow-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main);
+      cursor: pointer;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+      transition: all 0.15s ease;
+    }
+    .nav-arrow-btn:active {
+      transform: scale(0.92);
+      background: var(--bg);
+    }
+
+    /* 抽屉打开时锁定外部页面滚动 */
+    html.drawer-open,
+    body.drawer-open {
+      overflow: hidden !important;
+      touch-action: none;
+    }
+
+    /* 优雅底部抽屉组件 (取代原生丑陋 select 弹窗) */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      overscroll-behavior: contain;
+      touch-action: none;
+    }
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer-content {
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      border-radius: 24px 24px 0 0;
+      max-height: 72vh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2);
+      overscroll-behavior: contain;
+    }
+    .drawer-backdrop.open .drawer-content {
+      transform: translateY(0);
+    }
+    .drawer-drag-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 99px;
+      background: var(--border);
+      margin: 10px auto 4px;
+      touch-action: none;
+    }
+    .drawer-header {
+      padding: 10px 18px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      touch-action: none;
+    }
+    .drawer-title-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .drawer-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .drawer-count {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+    .drawer-close-btn {
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #D97706;
+      cursor: pointer;
+    }
+    .drawer-close-btn:active {
+      opacity: 0.8;
+    }
+    .drawer-list {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      overscroll-behavior-y: contain;
+      touch-action: pan-y;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: calc(72vh - 65px);
+    }
+    .drawer-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+    .drawer-item:active {
+      transform: scale(0.985);
+      filter: brightness(0.97);
+    }
+    .drawer-item.active {
+      background: rgba(245, 158, 11, 0.08);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+    .drawer-item-left {
+      min-width: 0;
+      flex: 1;
+      margin-right: 12px;
+    }
+    .drawer-item-title-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+    .drawer-item-num {
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--text-sub);
+      flex-shrink: 0;
+    }
+    .drawer-item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .drawer-item.active .drawer-item-title {
+      color: #D97706;
+    }
+    .drawer-item-meta {
+      font-size: 11px;
+      color: var(--text-sub);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .drawer-item-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #F59E0B;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
+    }
+
+    /* 核心日记卡片 */
+    .memo-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px 20px;
+      box-shadow: var(--shadow);
+      position: relative;
+      touch-action: pan-y;
+      will-change: transform, opacity;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    .memo-title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 10px;
+      letter-spacing: -0.3px;
+    }
+    .memo-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-sub);
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px dashed var(--border);
+    }
+    .tag-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .tag-工作 { background: rgba(59, 130, 246, 0.1); color: #2563EB; }
+    .tag-生活 { background: rgba(16, 185, 129, 0.1); color: #059669; }
+    .tag-灵感 { background: rgba(245, 158, 11, 0.1); color: #D97706; }
+    .tag-default { background: rgba(120, 113, 108, 0.1); color: #78716C; }
+
+    .memo-body {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text-main);
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 120px;
+    }
+
+
+
+    /* 底部操作区 (悬浮吸底) */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 30;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      background: rgba(248, 249, 250, 0.92);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    @media (prefers-color-scheme: dark) {
+      .bottom-bar {
+        background: rgba(15, 15, 16, 0.92);
+      }
+    }
+    .btn-copy-main {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #FFFFFF;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .btn-copy-main:active {
+      transform: scale(0.98);
+      filter: brightness(0.95);
+    }
+    .btn-copy-sub-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-copy-sub {
+      flex: 1;
+      padding: 9px;
+      border-radius: 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-copy-sub:active {
+      opacity: 0.7;
+    }
+
+    /* Toast 弹窗 */
+    #toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      background: rgba(28, 25, 23, 0.92);
+      color: #FFFFFF;
+      padding: 16px 24px;
+      border-radius: 18px;
+      font-size: 15px;
+      font-weight: 500;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      backdrop-filter: blur(10px);
+      text-align: center;
+      max-width: 80%;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    #toast .toast-icon {
+      font-size: 32px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 电脑端授权等待浮层 -->
+  <div id="auth-screen" style="position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 24px; padding: 36px 24px; max-width: 380px; width: 100%; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center;">
+      <!-- 图标与动态光环 -->
+      <div style="position: relative; width: 72px; height: 72px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center;">
+        <div style="position: absolute; inset: 0; border-radius: 50%; background: rgba(245, 158, 11, 0.2); animation: pulse 1.8s infinite;"></div>
+        <div style="width: 56px; height: 56px; border-radius: 18px; background: linear-gradient(135deg, #F59E0B, #D97706); display: flex; align-items: center; justify-content: center; font-size: 26px; box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);">
+          📱
+        </div>
+      </div>
+
+      <h2 id="auth-status-title" style="font-size: 19px; font-weight: 700; margin-bottom: 8px;">等待电脑端确认</h2>
+      <p id="auth-status-desc" style="font-size: 13px; color: var(--text-sub); line-height: 1.6; margin-bottom: 24px;">
+        已向电脑 Spark.Memo 发送接入申请。<br>请在电脑屏幕上点击<strong>【同意访问】</strong>。
+      </p>
+
+      <div style="width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; font-size: 12px; color: var(--text-sub); display: flex; align-items: center; justify-content: space-between;">
+        <span>安全防护：</span>
+        <span style="color: #059669; font-weight: 600;">🔐 电脑授权 + AES-256</span>
+      </div>
+
+      <div id="auth-retry-wrap" style="display: none; margin-top: 20px; width: 100%;">
+        <button onclick="requestAuthAgain()" style="width: 100%; padding: 12px; border-radius: 12px; background: var(--primary-btn); color: var(--primary-btn-text); border: none; font-size: 14px; font-weight: 600; cursor: pointer;">
+          重新发起申请
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 顶部导航 -->
+  <header>
+    <div class="brand">
+      <img src="/assets/icon.png" alt="Spark.Memo Logo">
+      <div>
+        <div class="brand-title">Spark.Memo</div>
+        <div class="brand-sub">
+          <span class="live-dot"></span>
+          <span>已连接局域网</span>
+        </div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="fetchLatestData(true)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <span>刷新</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 内容区 -->
+  <main>
+    <!-- 优雅备忘切换条与快捷翻页 -->
+    <div class="note-bar">
+      <button class="nav-arrow-btn" onclick="switchPrevNote('prev')" title="上一篇">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+
+      <div class="note-picker-btn" onclick="openNoteDrawer()">
+        <span class="note-picker-icon">📖</span>
+        <div class="note-picker-text-wrap">
+          <div class="note-picker-title" id="bar-note-title">载入备忘录...</div>
+          <div class="note-picker-sub" id="bar-note-sub">点击切换备忘</div>
+        </div>
+        <svg class="chevron-down" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+
+      <button class="nav-arrow-btn" onclick="switchNextNote('next')" title="下一篇">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <!-- 底部优雅抽屉式备忘选择器 -->
+    <div id="note-drawer-backdrop" class="drawer-backdrop" onclick="closeNoteDrawer()">
+      <div class="drawer-content" onclick="event.stopPropagation()">
+        <div class="drawer-drag-handle"></div>
+        <div class="drawer-header">
+          <div class="drawer-title-wrap">
+            <h3 class="drawer-title">全部备忘录</h3>
+            <span class="drawer-count" id="drawer-total-count">共 0 篇</span>
+          </div>
+          <button class="drawer-close-btn" onclick="closeNoteDrawer()">
+            <span>完成</span>
+          </button>
+        </div>
+        <div class="drawer-list" id="drawer-note-list">
+          <!-- 动态渲染 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 备忘卡片 -->
+    <div class="memo-card" id="memo-card">
+      <h1 class="memo-title" id="note-title">载入中...</h1>
+      <div class="memo-meta">
+        <span id="note-date">更新于：--</span>
+        <span id="note-tag" class="tag-badge tag-default">灵感</span>
+        <span id="note-words">0 字</span>
+      </div>
+      <div class="memo-body" id="note-content">正在同步电脑端日记内容...</div>
+
+    </div>
+  </main>
+
+  <!-- 悬浮操作底栏 -->
+  <div class="bottom-bar">
+    <button class="btn-copy-main" onclick="copyNoteContentOnly()">
+      <span>📋 一键复制正文</span>
+    </button>
+    <div class="btn-copy-sub-row">
+      <button class="btn-copy-sub" onclick="copyFullNoteWithTitle()">
+        <span>复制：标题 + 正文</span>
+      </button>
+      <button class="btn-copy-sub" onclick="copyTitleOnly()">
+        <span>仅复制标题</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast 提示框 -->
+  <div id="toast">
+    <div class="toast-icon">✨</div>
+    <div id="toast-text">已复制到剪贴板</div>
+  </div>
+
+  <script>
+    let allNotes = [];
+    let currentNote = null;
+
+    // 复制兼容性函数（完美支持 iOS Safari、Android Chrome、微信内置浏览器等 HTTP 非安全域环境）
+    function copyText(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text);
+      } else {
+        return new Promise((resolve, reject) => {
+          const textArea = document.createElement("textarea");
+          textArea.value = text;
+          textArea.style.position = "fixed";
+          textArea.style.left = "-9999px";
+          textArea.style.top = "-9999px";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          try {
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            if (successful) resolve();
+            else reject(new Error('复制失败'));
+          } catch (err) {
+            document.body.removeChild(textArea);
+            reject(err);
+          }
+        });
+      }
+    }
+
+    function showToast(text, icon = '✨') {
+      const toast = document.getElementById('toast');
+      const toastText = document.getElementById('toast-text');
+      const toastIcon = toast.querySelector('.toast-icon');
+      toastText.innerText = text;
+      toastIcon.innerText = icon;
+      toast.classList.add('show');
+      if (navigator.vibrate) navigator.vibrate(40);
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 2200);
+    }
+
+    function copyNoteContentOnly() {
+      if (!currentNote || !currentNote.content) {
+        showToast('正文内容为空哦', '⚠️');
+        return;
+      }
+      copyText(currentNote.content)
+        .then(() => showToast('正文已复制到剪贴板', '📋'))
+        .catch(() => showToast('复制失败，请手动长按复制', '❌'));
+    }
+
+    function copyFullNoteWithTitle() {
+      if (!currentNote) return;
+      const title = currentNote.title || '无标题日记';
+      const content = currentNote.content || '';
+      const fullText = `${title}\n\n${content}`.trim();
+      copyText(fullText)
+        .then(() => showToast('标题与正文已复制！', '📝'))
+        .catch(() => showToast('复制失败，请手动长按复制', '❌'));
+    }
+
+    function copyTitleOnly() {
+      if (!currentNote || !currentNote.title) {
+        showToast('标题为空哦', '⚠️');
+        return;
+      }
+      copyText(currentNote.title)
+        .then(() => showToast('标题已复制！', '📌'))
+        .catch(() => showToast('复制失败', '❌'));
+    }
+
+    function renderNote(note, animDirection = null) {
+      if (!note) {
+        document.getElementById('note-title').innerText = '暂无日记';
+        document.getElementById('note-content').innerText = '电脑端暂未选择任何备忘录。';
+        document.getElementById('note-date').innerText = '';
+        document.getElementById('note-tag').style.display = 'none';
+        document.getElementById('note-words').innerText = '';
+        return;
+      }
+      currentNote = note;
+      document.getElementById('note-title').innerText = note.title || '未命名备忘';
+      document.getElementById('note-content').innerText = note.content || '（暂无正文内容）';
+      
+      const dateStr = note.updatedAt ? new Date(note.updatedAt).toLocaleString('zh-CN', {
+        month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) : '今天';
+      document.getElementById('note-date').innerText = `更新于：${dateStr}`;
+      
+      const tagEl = document.getElementById('note-tag');
+      if (note.tag) {
+        tagEl.innerText = note.tag;
+        tagEl.className = `tag-badge tag-${note.tag}`;
+        tagEl.style.display = 'inline-block';
+      } else {
+        tagEl.style.display = 'none';
+      }
+
+      const words = (note.content || '').length;
+      document.getElementById('note-words').innerText = `${words} 字`;
+
+      // 同步更新顶部选择条的标题与序号
+      const curIdx = allNotes.findIndex(n => n.id === note.id);
+      const barTitle = document.getElementById('bar-note-title');
+      const barSub = document.getElementById('bar-note-sub');
+      if (barTitle) {
+        barTitle.innerText = `${curIdx >= 0 ? (curIdx + 1) + '. ' : ''}${note.title || '未命名备忘'}`;
+      }
+      if (barSub) {
+        const total = allNotes.length;
+        barSub.innerText = `第 ${curIdx >= 0 ? curIdx + 1 : 1}/${total} 篇 · ${note.tag ? `[${note.tag}] · ` : ''}${formatNoteDate(note.updatedAt)}`;
+      }
+
+      const card = document.getElementById('memo-card');
+      if (card) {
+        if (animDirection) {
+          window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+        if (animDirection === 'next') {
+          // 下一篇从右侧滑入
+          card.style.transition = 'none';
+          card.style.transform = 'translateX(45px)';
+          card.style.opacity = '0.3';
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              card.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease';
+              card.style.transform = 'translateX(0)';
+              card.style.opacity = '1';
+            });
+          });
+        } else if (animDirection === 'prev') {
+          // 上一篇从左侧滑入
+          card.style.transition = 'none';
+          card.style.transform = 'translateX(-45px)';
+          card.style.opacity = '0.3';
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              card.style.transition = 'transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease';
+              card.style.transform = 'translateX(0)';
+              card.style.opacity = '1';
+            });
+          });
+        } else {
+          card.style.transition = 'opacity 0.2s ease';
+          card.style.transform = 'translateX(0)';
+          card.style.opacity = '1';
+        }
+      }
+    }
+
+    function formatNoteDate(isoString) {
+      if (!isoString) return '今天';
+      const d = new Date(isoString);
+      return `${d.getMonth() + 1}月${d.getDate()}日`;
+    }
+
+    function renderDrawerList(activeId) {
+      const listContainer = document.getElementById('drawer-note-list');
+      const countEl = document.getElementById('drawer-total-count');
+      if (countEl) countEl.innerText = `共 ${allNotes.length} 篇`;
+
+      if (!listContainer) return;
+      listContainer.innerHTML = '';
+
+      if (!allNotes || allNotes.length === 0) {
+        listContainer.innerHTML = '<div style="text-align:center;padding:36px;color:var(--text-sub);font-size:13px;">暂无可用备忘录</div>';
+        return;
+      }
+
+      allNotes.forEach((n, idx) => {
+        const isActive = (n.id === activeId);
+        const item = document.createElement('div');
+        item.className = `drawer-item ${isActive ? 'active' : ''}`;
+        item.onclick = () => selectDrawerNote(n.id);
+
+        const title = n.title ? n.title : '未命名备忘';
+        const tagHtml = n.tag ? `<span class="tag-badge tag-${n.tag}">${n.tag}</span>` : '';
+        const words = (n.content || '').length;
+
+        item.innerHTML = `
+          <div class="drawer-item-left">
+            <div class="drawer-item-title-row">
+              <span class="drawer-item-num">${idx + 1}.</span>
+              <span class="drawer-item-title">${escapeHtml(title)}</span>
+              ${tagHtml}
+            </div>
+            <div class="drawer-item-meta">
+              <span>${formatNoteDate(n.updatedAt)}</span>
+              <span>·</span>
+              <span>${words} 字</span>
+            </div>
+          </div>
+          ${isActive ? '<div class="drawer-item-check">✓</div>' : ''}
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    function selectDrawerNote(noteId) {
+      const selected = allNotes.find(n => n.id === noteId);
+      if (selected) {
+        renderNote(selected);
+        renderDrawerList(selected.id);
+        closeNoteDrawer();
+      }
+    }
+
+    function switchPrevNote(direction = 'prev') {
+      if (!allNotes || allNotes.length <= 1) {
+        showToast('已经是唯一的一篇备忘录啦~', '🌱');
+        return;
+      }
+      let curIdx = allNotes.findIndex(n => n.id === (currentNote ? currentNote.id : ''));
+      if (curIdx <= 0) curIdx = allNotes.length - 1;
+      else curIdx -= 1;
+      renderNote(allNotes[curIdx], direction);
+      renderDrawerList(allNotes[curIdx].id);
+      showToast(`已切至 (${curIdx + 1}/${allNotes.length})：${allNotes[curIdx].title || '未命名'}`, '‹');
+    }
+
+    function switchNextNote(direction = 'next') {
+      if (!allNotes || allNotes.length <= 1) {
+        showToast('已经是唯一的一篇备忘录啦~', '🌱');
+        return;
+      }
+      let curIdx = allNotes.findIndex(n => n.id === (currentNote ? currentNote.id : ''));
+      if (curIdx < 0 || curIdx >= allNotes.length - 1) curIdx = 0;
+      else curIdx += 1;
+      renderNote(allNotes[curIdx], direction);
+      renderDrawerList(allNotes[curIdx].id);
+      showToast(`已切至 (${curIdx + 1}/${allNotes.length})：${allNotes[curIdx].title || '未命名'}`, '›');
+    }
+
+    function openNoteDrawer() {
+      const backdrop = document.getElementById('note-drawer-backdrop');
+      if (backdrop) backdrop.classList.add('open');
+      document.body.classList.add('drawer-open');
+      document.documentElement.classList.add('drawer-open');
+      if (currentNote) renderDrawerList(currentNote.id);
+    }
+
+    function closeNoteDrawer() {
+      const backdrop = document.getElementById('note-drawer-backdrop');
+      if (backdrop) backdrop.classList.remove('open');
+      document.body.classList.remove('drawer-open');
+      document.documentElement.classList.remove('drawer-open');
+    }
+
+    function escapeHtml(str) {
+      return (str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionToken = urlParams.get('token') || '';
+    
+    // Hash 密钥（浏览器绝不发送给网络，纯前端解密）
+    let sessionKeyHex = '';
+    if (window.location.hash) {
+      const hashStr = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hashStr);
+      sessionKeyHex = hashParams.get('key') || '';
+    }
+
+    function decryptPayload(ciphertext, secretKeyHex) {
+      if (typeof CryptoJS === 'undefined') {
+        throw new Error('CryptoJS 加密库载入中...');
+      }
+      const bytes = CryptoJS.AES.decrypt(ciphertext, secretKeyHex);
+      const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+      if (!decryptedText) {
+        throw new Error('解密失败：密钥校验未通过');
+      }
+      return JSON.parse(decryptedText);
+    }
+
+    let currentRequestId = sessionStorage.getItem('sync_auth_request_id') || null;
+    let pollTimer = null;
+
+    async function checkOrStartAuth() {
+      const authScreen = document.getElementById('auth-screen');
+      
+      // 若已记录 requestId，检查是否已经获得授权
+      if (currentRequestId) {
+        try {
+          const res = await fetch(`/api/auth-status?requestId=${encodeURIComponent(currentRequestId)}&token=${encodeURIComponent(sessionToken)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'approved') {
+              authScreen.style.display = 'none';
+              fetchLatestData(false);
+              return;
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 未授权或全新接入，展示等待确认浮层并向电脑发起申请
+      authScreen.style.display = 'flex';
+      authScreen.style.opacity = '1';
+      document.getElementById('auth-status-title').innerText = '等待电脑端确认';
+      document.getElementById('auth-status-desc').innerHTML = '已向电脑 Spark.Memo 发起接入申请。<br>请在电脑屏幕上点击<strong>【同意访问】</strong>。';
+      document.getElementById('auth-retry-wrap').style.display = 'none';
+
+      try {
+        const res = await fetch(`/api/request-auth?token=${encodeURIComponent(sessionToken)}`, { method: 'POST' });
+        if (!res.ok) {
+          document.getElementById('auth-status-title').innerText = '申请受限 (403)';
+          document.getElementById('auth-status-desc').innerText = '安全令牌无效或已过期，请重新使用电脑端扫码。';
+          return;
+        }
+        const data = await res.json();
+        currentRequestId = data.requestId;
+        sessionStorage.setItem('sync_auth_request_id', currentRequestId);
+
+        startPollingAuth();
+      } catch (err) {
+        console.error('request-auth error:', err);
+        document.getElementById('auth-status-desc').innerText = '网络连接异常，请确保连接到同一 Wi-Fi。';
+      }
+    }
+
+    function startPollingAuth() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        if (!currentRequestId) return;
+        try {
+          const res = await fetch(`/api/auth-status?requestId=${encodeURIComponent(currentRequestId)}&token=${encodeURIComponent(sessionToken)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+
+          if (data.status === 'approved') {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            const authScreen = document.getElementById('auth-screen');
+            authScreen.style.opacity = '0';
+            authScreen.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+              authScreen.style.display = 'none';
+            }, 300);
+            showToast('电脑已同意访问！日记已就绪~', '🎉');
+            fetchLatestData(false);
+          } else if (data.status === 'rejected') {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            document.getElementById('auth-status-title').innerText = '电脑端已拒绝访问';
+            document.getElementById('auth-status-desc').innerHTML = '电脑端用户拒绝了本次扫码接入申请。<br>如需重新申请，请点击下方按钮。';
+            document.getElementById('auth-retry-wrap').style.display = 'block';
+            sessionStorage.removeItem('sync_auth_request_id');
+          }
+        } catch (e) {}
+      }, 1000);
+    }
+
+    function requestAuthAgain() {
+      sessionStorage.removeItem('sync_auth_request_id');
+      currentRequestId = null;
+      checkOrStartAuth();
+    }
+
+    async function fetchLatestData(showFeedback = false) {
+      if (!currentRequestId) return;
+      try {
+        const res = await fetch(`/api/data?token=${encodeURIComponent(sessionToken)}&requestId=${encodeURIComponent(currentRequestId)}&t=${Date.now()}`);
+        if (res.status === 403) {
+          showToast('访问受限：未获得电脑端授权', '🔒');
+          return;
+        }
+        const data = await res.json();
+        
+        let plainData = data;
+        if (data.encrypted) {
+          if (!sessionKeyHex) {
+            showToast('未找到解密密钥，请重新扫码', '⚠️');
+            return;
+          }
+          plainData = decryptPayload(data.ciphertext, sessionKeyHex);
+        }
+
+        allNotes = (plainData.notes || []).filter(n => !n.isDeleted);
+        const activeId = plainData.activeNoteId;
+        renderDrawerList(activeId);
+        
+        let target = allNotes.find(n => n.id === activeId) || allNotes[0];
+        renderNote(target);
+        if (showFeedback) {
+          showToast('已拉取最新修改（已解密）！', '🔐');
+        }
+      } catch (err) {
+        console.error(err);
+        if (showFeedback) showToast('连接电脑失败，请检查Wi-Fi', '⚠️');
+      }
+    }
+
+    // 阻止抽屉滚动穿透（滑到底部或顶部时阻止拖拽传递到背景正文）
+    function setupDrawerScrollLock() {
+      const drawerList = document.getElementById('drawer-note-list');
+      const drawerBackdrop = document.getElementById('note-drawer-backdrop');
+      const drawerHeader = document.querySelector('.drawer-header');
+      const dragHandle = document.querySelector('.drawer-drag-handle');
+
+      let startY = 0;
+
+      if (drawerList) {
+        drawerList.addEventListener('touchstart', (e) => {
+          if (e.touches && e.touches.length === 1) {
+            startY = e.touches[0].clientY;
+          }
+        }, { passive: true });
+
+        drawerList.addEventListener('touchmove', (e) => {
+          if (!e.touches || e.touches.length !== 1) return;
+          const currentY = e.touches[0].clientY;
+          const deltaY = currentY - startY; // > 0: 向下拉; < 0: 向上拉
+          const scrollTop = drawerList.scrollTop;
+          const scrollHeight = drawerList.scrollHeight;
+          const clientHeight = drawerList.clientHeight;
+
+          // 列表内容少于容器高度时完全禁止滑动穿透
+          if (scrollHeight <= clientHeight) {
+            e.preventDefault();
+            return;
+          }
+
+          // 到达顶部继续往下拉，阻止穿透到背景页面
+          if (scrollTop <= 0 && deltaY > 0) {
+            e.preventDefault();
+            return;
+          }
+
+          // 到达底部继续往上拉，阻止穿透到背景正文
+          if (scrollTop + clientHeight >= scrollHeight - 1 && deltaY < 0) {
+            e.preventDefault();
+            return;
+          }
+        }, { passive: false });
+      }
+
+      // 遮罩层拖拽时直接阻止默认穿透
+      if (drawerBackdrop) {
+        drawerBackdrop.addEventListener('touchmove', (e) => {
+          if (e.target === drawerBackdrop) {
+            e.preventDefault();
+          }
+        }, { passive: false });
+      }
+
+      // 头部和把手拖拽时阻止默认穿透
+      if (drawerHeader) {
+        drawerHeader.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+        }, { passive: false });
+      }
+
+      if (dragHandle) {
+        dragHandle.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+        }, { passive: false });
+      }
+    }
+
+    // 页面左右滑动手势切篇
+    function setupSwipeGesture() {
+      const card = document.getElementById('memo-card');
+      if (!card) return;
+
+      let startX = 0;
+      let startY = 0;
+      let isHorizontal = null;
+      let isTouching = false;
+      let startTime = 0;
+
+      card.addEventListener('touchstart', (e) => {
+        // 抽屉展开中不触发切篇手势
+        if (document.body.classList.contains('drawer-open')) return;
+        if (!e.touches || e.touches.length !== 1) return;
+
+        // 如果点击的是按钮、链接或输入框则不拦截
+        const target = e.target;
+        if (target.closest('button') || target.closest('a') || target.closest('input')) return;
+
+        // 避免误触手机系统边缘滑动手势（如返回手势）
+        const touch = e.touches[0];
+        if (touch.clientX < 20 || touch.clientX > window.innerWidth - 20) return;
+
+        startX = touch.clientX;
+        startY = touch.clientY;
+        startTime = Date.now();
+        isHorizontal = null;
+        isTouching = true;
+      }, { passive: true });
+
+      card.addEventListener('touchmove', (e) => {
+        if (!isTouching || !e.touches || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - startX;
+        const deltaY = touch.clientY - startY;
+
+        // 判定滑动方向（区分横向切篇与纵向看日记）
+        if (isHorizontal === null) {
+          const absX = Math.abs(deltaX);
+          const absY = Math.abs(deltaY);
+          if (absX > 8 || absY > 8) {
+            if (absX > absY * 1.15) {
+              isHorizontal = true;
+            } else {
+              isHorizontal = false; // 判定为垂直滚动阅读
+            }
+          }
+        }
+
+        // 横向滑动手势激活：物理阻尼跟手反馈
+        if (isHorizontal === true) {
+          if (e.cancelable) e.preventDefault();
+
+          const damp = 0.55;
+          const currentTranslate = deltaX * damp;
+          card.style.transition = 'none';
+          card.style.transform = `translateX(${currentTranslate}px)`;
+          card.style.opacity = Math.max(0.45, 1 - Math.abs(currentTranslate) / 400);
+        }
+      }, { passive: false });
+
+      const handleTouchEnd = (e) => {
+        if (!isTouching) return;
+        isTouching = false;
+
+        if (isHorizontal === true) {
+          const touch = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+          const endX = touch ? touch.clientX : startX;
+          const deltaX = endX - startX;
+          const duration = Date.now() - startTime;
+
+          // 快速轻扫 (flick) 或滑动超过 55px
+          const isQuickFlick = duration < 320 && Math.abs(deltaX) > 35;
+          const isDeepSwipe = Math.abs(deltaX) > 55;
+
+          if (isDeepSwipe || isQuickFlick) {
+            if (deltaX < 0) {
+              // 向左滑 -> 下一篇
+              if (navigator.vibrate) navigator.vibrate(25);
+              card.style.transition = 'transform 0.16s ease-out, opacity 0.16s ease-out';
+              card.style.transform = 'translateX(-90px)';
+              card.style.opacity = '0';
+              setTimeout(() => {
+                switchNextNote('next');
+              }, 120);
+            } else {
+              // 向右滑 -> 上一篇
+              if (navigator.vibrate) navigator.vibrate(25);
+              card.style.transition = 'transform 0.16s ease-out, opacity 0.16s ease-out';
+              card.style.transform = 'translateX(90px)';
+              card.style.opacity = '0';
+              setTimeout(() => {
+                switchPrevNote('prev');
+              }, 120);
+            }
+          } else {
+            // 未达阈值，弹簧回弹复原
+            card.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease';
+            card.style.transform = 'translateX(0)';
+            card.style.opacity = '1';
+          }
+        }
+        isHorizontal = null;
+      };
+
+      card.addEventListener('touchend', handleTouchEnd, { passive: true });
+      card.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+    }
+
+    // 页面启动即校验授权
+    document.addEventListener('DOMContentLoaded', () => {
+      checkOrStartAuth();
+      setupDrawerScrollLock();
+      setupSwipeGesture();
+      // 获得授权后每 5 秒静默检测更新一次，电脑端边写手机边更新
+      setInterval(() => {
+        if (currentRequestId) fetchLatestData(false);
+      }, 5000);
+    });
+  </script>
+</body>
+</html>

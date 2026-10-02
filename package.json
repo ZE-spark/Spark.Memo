@@ -1,0 +1,33 @@
+{
+  "name": "spark-memo",
+  "version": "1.0.0",
+  "description": "Spark.Memo - 极简优雅的跨端即时备忘录与个人日记应用",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ZE-spark/Spark.Memo.git"
+  },
+  "keywords": [
+    "memo",
+    "notes",
+    "electron",
+    "diary",
+    "sync",
+    "desktop-app"
+  ],
+  "author": "ZE-spark",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron/packager": "^20.0.0",
+    "electron": "^42.3.2",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "crypto-js": "^4.1.1",
+    "qrcode": "^1.5.4"
+  }
+}

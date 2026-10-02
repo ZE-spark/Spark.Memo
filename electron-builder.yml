@@ -1,0 +1,27 @@
+appId: com.sparkmemo.app
+productName: Spark.Memo
+copyright: Copyright (c) 2026
+
+directories:
+  output: dist
+  buildResources: assets
+
+files:
+  - main.js
+  - preload.js
+  - sync-server.js
+  - index.html
+  - assets/**/*
+  - node_modules/qrcode/**/*
+
+win:
+  icon: assets/icon.ico
+  target:
+    - target: portable
+      arch:
+        - x64
+
+portable:
+  artifactName: Spark.Memo-Portable-${version}.${ext}
+
+compression: normal
