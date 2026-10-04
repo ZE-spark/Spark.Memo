@@ -1,7 +1,11 @@
 # Spark.Memo ⚡
 
 <p align="center">
-  <img src="assets/icon.png" width="128" height="128" alt="Spark.Memo Logo">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/icon-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/icon.png">
+    <img src="assets/icon.png" width="128" height="128" alt="Spark.Memo Logo">
+  </picture>
 </p>
 
 <p align="center">
